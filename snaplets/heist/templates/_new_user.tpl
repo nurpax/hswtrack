@@ -1,4 +1,4 @@
-<h1>Register a new user</h1>
+<legend>Register a new user</legend>
 
 <p><newUserError/></p>
 
