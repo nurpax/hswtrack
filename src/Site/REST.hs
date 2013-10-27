@@ -18,12 +18,12 @@ import           System.Locale (defaultTimeLocale)
 -- Everything needed for rendering the home/settings page
 data AppContext = AppContext {
     acLogin :: T.Text
-  , acWeight :: Maybe Double
+  , acWeight :: Maybe Float
   }
 
 data WeightSample = WeightSample {
     wsDate :: Day
-  , wsWeight :: Double
+  , wsWeight :: Float
   }
 
 instance FromJSON AppContext where

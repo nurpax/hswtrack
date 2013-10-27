@@ -30,7 +30,7 @@ Executable hswtrack
     snap-loader-static >= 0.9 && < 0.11,
     snap-extras == 0.7.*,
     snaplet-sqlite-simple >= 0.4 && < 1.0,
-    sqlite-simple >= 0.1 && < 1.0,
+    sqlite-simple >= 0.4.4 && < 1.0,
     text >= 0.11 && < 0.12,
     time >= 1.1 && < 1.5,
     old-locale,

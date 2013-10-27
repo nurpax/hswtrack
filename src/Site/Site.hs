@@ -17,7 +17,6 @@ import           Control.Error.Safe (tryJust)
 import           Control.Lens
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Data.Time
 import           Database.SQLite.Simple as S
@@ -39,10 +38,6 @@ import           Site.REST
 import           Site.Util
 
 type H = Handler App App
-
-maybeWhen :: Monad m => Maybe a -> (a -> m ()) -> m ()
-maybeWhen Nothing _  = return ()
-maybeWhen (Just a) f = f a
 
 -- | Render login form
 handleLogin :: Maybe T.Text -> Handler App (AuthManager App) ()
@@ -106,7 +101,7 @@ restAppContext :: H ()
 restAppContext =
   method GET (withLoggedInUser get)
   where
-    get user@(Model.User uid login)  = do
+    get user@(Model.User _ login)  = do
       today <- liftIO $ getCurrentTime
       weight <- withDb $ \conn -> Model.queryTodaysWeight conn user today
       let appContext = AppContext login weight
@@ -116,7 +111,7 @@ restListWeights :: H ()
 restListWeights =
   method GET (withLoggedInUser get)
   where
-    get user@(Model.User uid login)  = do
+    get user  = do
       weights <- withDb $ \conn -> Model.queryWeights conn user
       let ws = map (\(d,w) -> WeightSample d w) weights
       writeJSON ws
