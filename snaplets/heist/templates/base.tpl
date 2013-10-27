@@ -37,12 +37,12 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a href="./" class="navbar-brand">Weight Track</a>
+      <a href="#/" class="navbar-brand">Weight Track</a>
     </div>
     <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
       <ul class="nav navbar-nav">
         <li>
-          <a href="/settings">Settings</a>
+          <a href="#/settings">Settings</a>
         </li>
         <li>
           <a href="/logout">Logout</a>
@@ -54,13 +54,15 @@
 
 <apply-content/>
 
-
     <!-- JS and analytics only. -->
     <!-- Bootstrap core JavaScript
 ================================================== -->
 <!-- Placed at the end of the document so the pages load faster -->
 <script src="static/jquery-2.0.3/jquery.min.js"></script>
 <script src="static/bootstrap-3.0.0/js/bootstrap.min.js"></script>
+<script src="static/handlebars-1.0.0/handlebars.js"></script>
+<script src="static/router.js"></script>
+<script src="static/app.js"></script>
 
   </body>
 </html>
