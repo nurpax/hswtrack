@@ -112,6 +112,15 @@ restAppContext =
       let appContext = AppContext login weight
       writeJSON appContext
 
+restListWeights :: H ()
+restListWeights =
+  method GET (withLoggedInUser get)
+  where
+    get user@(Model.User uid login)  = do
+      weights <- withDb $ \conn -> Model.queryWeights conn user
+      let ws = map (\(d,w) -> WeightSample d w) weights
+      writeJSON ws
+
 -- | Render main page
 mainPage :: H ()
 mainPage = withLoggedInUser (\_ -> render "/index")
@@ -122,6 +131,7 @@ routes = [ ("/login",        handleLoginSubmit)
          , ("/logout",       handleLogout)
          , ("/new_user",     handleNewUser)
          , ("/rest/app",     restAppContext)
+         , ("/rest/weights", restListWeights)
          , ("/",             mainPage)
          , ("/static",       serveDirectory "static")
          ]

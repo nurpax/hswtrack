@@ -62,6 +62,8 @@
 <script src="static/bootstrap-3.0.0/js/bootstrap.min.js"></script>
 <script src="static/handlebars-1.0.0/handlebars.js"></script>
 <script src="static/router.js"></script>
+<script src="http://d3js.org/d3.v3.js"></script>
+
 <script src="static/app.js"></script>
 
   </body>
