@@ -21,6 +21,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
 import           Snap.Core
+import           Snap.Extras.JSON
 import           Snap.Snaplet
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.Auth.Backends.SqliteSimple
@@ -31,8 +32,9 @@ import           Snap.Util.FileServe
 import           Heist
 import qualified Heist.Interpreted as I
 ------------------------------------------------------------------------------
-import           Site.Application
 import qualified Model
+import           Site.Application
+import           Site.REST
 import           Site.Util
 
 type H = Handler App App
@@ -107,24 +109,18 @@ handleCommentSubmit = method POST (withLoggedInUser go)
       withDb (\conn -> maybeWhen c (Model.saveComment conn user . T.decodeUtf8))
       redirect "/"
 
-renderComment :: Monad m => Model.Comment -> I.Splice m
-renderComment (Model.Comment _ saved text) =
-  I.runChildrenWithText splices
+restAppContext :: H ()
+restAppContext =
+  method GET  (withLoggedInUser get)
   where
-    splices = do
-      "savedOn" ## T.pack . show $ saved
-      "comment" ## text
+    get (Model.User _ login) = do
+      let appContext = AppContext login
+      writeJSON appContext
+
 
 -- | Render main page
 mainPage :: H ()
-mainPage = withLoggedInUser go
-  where
-    go :: Model.User -> H ()
-    go user = do
-      comments <- withDb (\conn -> Model.listComments conn user)
-      heistLocal (splices comments) $ render "/index"
-    splices cs =
-      I.bindSplices ("comments" ## I.mapSplices renderComment cs)
+mainPage = withLoggedInUser (\_ -> render "/index")
 
 -- | The application's routes.
 routes :: [(ByteString, Handler App App ())]
@@ -132,6 +128,7 @@ routes = [ ("/login",        handleLoginSubmit)
          , ("/logout",       handleLogout)
          , ("/new_user",     handleNewUser)
          , ("/save_comment", handleCommentSubmit)
+         , ("/rest/app",     restAppContext)
          , ("/",             mainPage)
          , ("/static",       serveDirectory "static")
          ]

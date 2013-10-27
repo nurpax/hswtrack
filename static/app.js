@@ -1,17 +1,16 @@
 
+var appContext = null;
 var templateHome = null;
 var templateSettings = null;
 
 function renderSettings()
 {
-    var context = { username: "Janne" };
-    $("#app-container").html(templateSettings(context));
+    $("#app-container").html(templateSettings(appContext));
 }
 
 function renderHome()
 {
-    var context = { username: "Janne" };
-    $("#app-container").html(templateHome(context));
+    $("#app-container").html(templateHome(appContext));
 }
 
 $(function () {
@@ -19,8 +18,19 @@ $(function () {
     templateHome = Handlebars.compile($("#home-template").html());
     templateSettings = Handlebars.compile($("#settings-template").html());
 
-    // Routes
-    router.add("/", renderHome);
-    router.add("/settings", renderSettings);
-    router.start();
+    // Load UI parameters and setup routing + render main page after
+    // finished all loading
+    $.ajax({
+        type: "GET",
+        url: "/rest/app",
+        data: [],
+        success: function(resp) {
+            appContext = resp;
+
+            // Routes
+            router.add("/", renderHome);
+            router.add("/settings", renderSettings);
+            router.start();
+        }});
+
 });

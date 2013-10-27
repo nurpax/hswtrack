@@ -7,8 +7,6 @@
   <!-- Page content of course! -->
   <main class="bs-masthead" id="content" role="main">
     <div class="container">
-      <h1>Weightrkr 2.0</h1>
-
       <!-- App contents will be applied into this div by JS -->
       <ifLoggedIn>
         <div id="app-container">

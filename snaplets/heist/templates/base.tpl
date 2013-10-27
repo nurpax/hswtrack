@@ -8,7 +8,7 @@
 <meta name="description" content="">
 <meta name="author" content="">
 
-<title>Haskell Wtrack</title>
+<title>Weightrkr 2.0</title>
 
 <!-- Bootstrap core CSS -->
 <link href="static/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet">
@@ -37,7 +37,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a href="#/" class="navbar-brand">Weight Track</a>
+      <a href="#/" class="navbar-brand">Weightrkr 2.0</a>
     </div>
     <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
       <ul class="nav navbar-nav">
