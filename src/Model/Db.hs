@@ -1,26 +1,16 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 module Model.Db (
-    User(..)
-  , Comment(..)
-  , createTables
+    createTables
   , saveComment
   , listComments) where
 
 import           Control.Applicative
 import           Control.Monad
 import qualified Data.Text as T
-import           Data.Time (UTCTime)
 import           Database.SQLite.Simple
 
-data User = User Int T.Text
-
-data Comment = Comment
-  {
-    commentId :: Int
-  , commentSavedOn :: UTCTime
-  , commentText :: T.Text
-  } deriving (Show)
+import           Model.Types
 
 instance FromRow Comment where
   fromRow = Comment <$> field <*> field <*> field
