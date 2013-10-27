@@ -14,15 +14,17 @@ import qualified Data.Text as T
 
 -- Everything needed for rendering the home/settings page
 data AppContext = AppContext {
-  hcLogin :: T.Text
+    acLogin :: T.Text
+  , acWeight :: Maybe Double
   } deriving (Show, Eq)
 
 instance FromJSON AppContext where
   parseJSON (Object v) =
-    AppContext <$> v .: "login"
+    AppContext <$> v .: "login" <*> v .: "weight"
   parseJSON _ = mzero
 
 instance ToJSON AppContext where
-  toJSON (AppContext u) =
+  toJSON (AppContext u w) =
     object [ "login"  .= u
+           , "weight" .= w
            ]

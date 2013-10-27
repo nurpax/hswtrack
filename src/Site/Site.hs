@@ -19,6 +19,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
+import           Data.Time
 import           Database.SQLite.Simple as S
 import           Snap.Core
 import           Snap.Extras.JSON
@@ -101,22 +102,15 @@ withDb :: (S.Connection -> IO a) -> H a
 withDb action =
   withTop db . withSqlite $ \conn -> action conn
 
-handleCommentSubmit :: H ()
-handleCommentSubmit = method POST (withLoggedInUser go)
-  where
-    go user = do
-      c <- getParam "comment"
-      withDb (\conn -> maybeWhen c (Model.saveComment conn user . T.decodeUtf8))
-      redirect "/"
-
 restAppContext :: H ()
 restAppContext =
-  method GET  (withLoggedInUser get)
+  method GET (withLoggedInUser get)
   where
-    get (Model.User _ login) = do
-      let appContext = AppContext login
+    get user@(Model.User uid login)  = do
+      today <- liftIO $ getCurrentTime
+      weight <- withDb $ \conn -> Model.queryTodaysWeight conn user today
+      let appContext = AppContext login weight
       writeJSON appContext
-
 
 -- | Render main page
 mainPage :: H ()
@@ -127,7 +121,6 @@ routes :: [(ByteString, Handler App App ())]
 routes = [ ("/login",        handleLoginSubmit)
          , ("/logout",       handleLogout)
          , ("/new_user",     handleNewUser)
-         , ("/save_comment", handleCommentSubmit)
          , ("/rest/app",     restAppContext)
          , ("/",             mainPage)
          , ("/static",       serveDirectory "static")

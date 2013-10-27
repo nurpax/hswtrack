@@ -2,18 +2,16 @@
 
 module Model.Db (
     createTables
-  , saveComment
-  , listComments) where
+  , queryTodaysWeight) where
 
 import           Control.Applicative
 import           Control.Monad
+import           Data.Maybe (listToMaybe)
 import qualified Data.Text as T
+import           Data.Time (UTCTime)
 import           Database.SQLite.Simple
 
 import           Model.Types
-
-instance FromRow Comment where
-  fromRow = Comment <$> field <*> field <*> field
 
 tableExists :: Connection -> String -> IO Bool
 tableExists conn tblName = do
@@ -28,22 +26,34 @@ createTables conn = do
   -- Note: for a bigger app, you probably want to create a 'version'
   -- table too and use it to keep track of schema version and
   -- implement your schema upgrade procedure here.
-  schemaCreated <- tableExists conn "comments"
-  unless schemaCreated $
+  schemaCreated <- tableExists conn "weights"
+  unless schemaCreated $ do
     execute_ conn
       (Query $
-       T.concat [ "CREATE TABLE comments ("
-                , "id INTEGER PRIMARY KEY, "
-                , "user_id INTEGER NOT NULL, "
-                , "saved_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, "
-                , "comment TEXT)"])
+       T.concat [ "CREATE TABLE notes ("
+                , "  id INTEGER PRIMARY KEY,"
+                , "  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,"
+                , "  user_id INTEGER NOT NULL,"
+                , "  comment TEXT);"])
+    execute_ conn
+      (Query $
+       T.concat [ "CREATE TABLE user_options ("
+                , "  user_id INTEGER PRIMARY KEY,"
+                , "  option_name TEXT,"
+                , "  option_value TEXT);"])
+    execute_ conn
+      (Query $
+       T.concat [ "CREATE TABLE weights ("
+                , "    id INTEGER PRIMARY KEY,"
+                , "    date date NOT NULL,"
+                , "    user_id INTEGER,"
+                , "    weight FLOAT NOT NULL"
+                , ");"])
 
--- | Retrieve a user's list of comments
-listComments :: Connection -> User -> IO [Comment]
-listComments conn (User uid _) =
-  query conn "SELECT id,saved_on,comment FROM comments WHERE user_id = ?" (Only uid)
-
--- | Save a new comment for a user
-saveComment :: Connection -> User -> T.Text -> IO ()
-saveComment conn (User uid _) c =
-  execute conn "INSERT INTO comments (user_id,comment) VALUES (?,?)" (uid, c)
+queryTodaysWeight :: Connection -> User -> UTCTime -> IO (Maybe Double)
+queryTodaysWeight conn (User id _) today = do
+  weights <- query conn "SELECT weight FROM weights WHERE user_id = ? AND date = date(?) LIMIT 1" (id, today)
+  return $
+    case weights of
+      [Only f] -> Just f
+      _ -> Nothing
