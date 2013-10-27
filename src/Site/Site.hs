@@ -19,6 +19,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
+import           Database.SQLite.Simple as S
 import           Snap.Core
 import           Snap.Snaplet
 import           Snap.Snaplet.Auth
@@ -93,12 +94,17 @@ withLoggedInUser action =
       uid' <- hoistEither (reader T.decimal (unUid uid))
       return $ action (Model.User uid' (userLogin u))
 
+-- | Run an IO action with an SQLite connection
+withDb :: (S.Connection -> IO a) -> H a
+withDb action =
+  withTop db . withSqlite $ \conn -> action conn
+
 handleCommentSubmit :: H ()
 handleCommentSubmit = method POST (withLoggedInUser go)
   where
     go user = do
       c <- getParam "comment"
-      maybeWhen c (withTop db . Model.saveComment user . T.decodeUtf8)
+      withDb (\conn -> maybeWhen c (Model.saveComment conn user . T.decodeUtf8))
       redirect "/"
 
 renderComment :: Monad m => Model.Comment -> I.Splice m
@@ -115,7 +121,7 @@ mainPage = withLoggedInUser go
   where
     go :: Model.User -> H ()
     go user = do
-      comments <- withTop db $ Model.listComments user
+      comments <- withDb (\conn -> Model.listComments conn user)
       heistLocal (splices comments) $ render "/index"
     splices cs =
       I.bindSplices ("comments" ## I.mapSplices renderComment cs)
