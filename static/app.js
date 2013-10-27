@@ -1,17 +1,26 @@
 
-function routeSettings()
+var templateHome = null;
+var templateSettings = null;
+
+function renderSettings()
 {
-    console.log("#settings");
+    var context = { username: "Janne" };
+    $("#app-container").html(templateSettings(context));
 }
 
-function routeHome()
+function renderHome()
 {
-    console.log("#home");
+    var context = { username: "Janne" };
+    $("#app-container").html(templateHome(context));
 }
 
 $(function () {
-    router.add("/", routeHome);
-    router.add("/settings", routeSettings);
+    // Compile templates
+    templateHome = Handlebars.compile($("#home-template").html());
+    templateSettings = Handlebars.compile($("#settings-template").html());
+
+    // Routes
+    router.add("/", renderHome);
+    router.add("/settings", renderSettings);
     router.start();
-    console.log("hello world");
 });
