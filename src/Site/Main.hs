@@ -11,7 +11,7 @@ import           Snap.Snaplet
 import           Snap.Snaplet.Config
 import           Snap.Core
 import           System.IO
-import           Site
+import           Site.Site
 
 #ifdef DEVELOPMENT
 import           Snap.Loader.Dynamic

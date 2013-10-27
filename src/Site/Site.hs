@@ -4,7 +4,7 @@
 -- | This module is where all the routes and handlers are defined for your
 -- site. The 'app' function is the initializer that combines everything
 -- together and is exported by this module.
-module Site
+module Site.Site
   ( app
   ) where
 
@@ -30,9 +30,9 @@ import           Snap.Util.FileServe
 import           Heist
 import qualified Heist.Interpreted as I
 ------------------------------------------------------------------------------
-import           Application
-import qualified Db
-import           Util
+import           Site.Application
+import qualified Model
+import           Site.Util
 
 type H = Handler App App
 
@@ -82,7 +82,7 @@ handleNewUser =
         lift (with auth (forceLogin user) >> redirect "/")
 
 -- | Run actions with a logged in user or go back to the login screen
-withLoggedInUser :: (Db.User -> H ()) -> H ()
+withLoggedInUser :: (Model.User -> H ()) -> H ()
 withLoggedInUser action =
   with auth currentUser >>= go
   where
@@ -91,18 +91,18 @@ withLoggedInUser action =
     go (Just u) = logRunEitherT $ do
       uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
       uid' <- hoistEither (reader T.decimal (unUid uid))
-      return $ action (Db.User uid' (userLogin u))
+      return $ action (Model.User uid' (userLogin u))
 
 handleCommentSubmit :: H ()
 handleCommentSubmit = method POST (withLoggedInUser go)
   where
     go user = do
       c <- getParam "comment"
-      maybeWhen c (withTop db . Db.saveComment user . T.decodeUtf8)
+      maybeWhen c (withTop db . Model.saveComment user . T.decodeUtf8)
       redirect "/"
 
-renderComment :: Monad m => Db.Comment -> I.Splice m
-renderComment (Db.Comment _ saved text) =
+renderComment :: Monad m => Model.Comment -> I.Splice m
+renderComment (Model.Comment _ saved text) =
   I.runChildrenWithText splices
   where
     splices = do
@@ -113,9 +113,9 @@ renderComment (Db.Comment _ saved text) =
 mainPage :: H ()
 mainPage = withLoggedInUser go
   where
-    go :: Db.User -> H ()
+    go :: Model.User -> H ()
     go user = do
-      comments <- withTop db $ Db.listComments user
+      comments <- withTop db $ Model.listComments user
       heistLocal (splices comments) $ render "/index"
     splices cs =
       I.bindSplices ("comments" ## I.mapSplices renderComment cs)
@@ -148,7 +148,7 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     -- Grab the DB connection pool from the sqlite snaplet and call
     -- into the Model to create all the DB tables if necessary.
     let c = sqliteConn $ d ^# snapletValue
-    liftIO $ withMVar c $ \conn -> Db.createTables conn
+    liftIO $ withMVar c $ \conn -> Model.createTables conn
 
     addAuthSplices h auth
     return $ App h s d a

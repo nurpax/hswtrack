@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Util (
+module Site.Util (
     reader
   , logFail
   , logRunEitherT
@@ -13,7 +13,7 @@ import qualified Data.Text.Read as T
 
 import           Snap.Core
 import           Snap.Snaplet
-import           Application
+import           Site.Application
 
 type H = Handler App App
 

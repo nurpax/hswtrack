@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
-module Db (
+module Model.Db (
     User(..)
   , Comment(..)
   , createTables
@@ -15,7 +15,7 @@ import qualified Database.SQLite.Simple as S
 import           Snap.Snaplet
 import           Snap.Snaplet.SqliteSimple
 ------------------------------------------------------------------------------
-import           Application
+import           Site.Application
 
 data User = User Int T.Text
 
