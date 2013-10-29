@@ -3,6 +3,8 @@ var appContext = null;
 var templateHome = null;
 var templateSettings = null;
 
+var selectedGraphDays = 3*30;
+
 function renderPlot()
 {
     var svgDiv = $("div#weight-plot");
@@ -31,13 +33,17 @@ function renderPlot()
         .x(function(d) { return x(d.date); })
         .y(function(d) { return y(d.weight); });
 
+    d3.select("div#weight-plot svg").remove();
+
     var svg = d3.select("div#weight-plot").append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    d3.json("/rest/weights", function(error, data) {
+    var getParams = "?days=" + selectedGraphDays;
+
+    d3.json("/rest/weights"+getParams, function(error, data) {
         data.forEach(function(d) {
             d.date = parseDate(d.date);
         });
@@ -74,8 +80,18 @@ function renderSettings()
 
 function renderHome()
 {
+    var plot = function(days) {
+        selectedGraphDays = days;
+        renderPlot();
+    };
+
     $("#app-container").html(templateHome(appContext));
     renderPlot();
+
+    $("label#graph-3-mo").click(function () { plot(3*30); });
+    $("label#graph-12-mo").click(function () { plot(12*30); });
+    $("label#graph-24-mo").click(function () { plot(24*30); });
+    $("label#graph-all").click(function () { plot(0) });
 }
 
 $(function () {

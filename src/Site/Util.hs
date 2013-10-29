@@ -4,9 +4,14 @@ module Site.Util (
     reader
   , logFail
   , logRunEitherT
+  , tryGetParam
+  , tryGetIntParam
   ) where
 
+import           Control.Error.Safe (tryJust)
+import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
+import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
@@ -34,3 +39,14 @@ logFail = either (logError . T.encodeUtf8 . T.pack) id
 
 logRunEitherT :: EitherT String H (H ()) -> H ()
 logRunEitherT e = runEitherT e >>= logFail
+
+tryGetParam :: MonadSnap m => ByteString -> EitherT [Char] m ByteString
+tryGetParam p =
+  lift (getParam p) >>= tryJust ("missing get param '"++ show p ++"'")
+
+tryGetIntParam :: ByteString -> EitherT String H Int
+tryGetIntParam n =
+  tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
+
+--getTextParam :: ByteString -> EitherT String H T.Text
+--getTextParam = getParamE (Right . T.decodeUtf8)

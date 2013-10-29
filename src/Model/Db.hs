@@ -8,15 +8,10 @@ module Model.Db (
 import           Control.Applicative
 import           Control.Monad
 import qualified Data.Text as T
-import           Data.Time (Day, UTCTime, parseTime)
+import           Data.Time (Day, UTCTime)
 import           Database.SQLite.Simple
 
 import           Model.Types
-
-data DayWeight = DayWeight { _day :: Day, _weight :: Float }
-
-instance FromRow DayWeight where
-  fromRow = DayWeight <$> field <*> field
 
 tableExists :: Connection -> String -> IO Bool
 tableExists conn tblName = do
@@ -63,7 +58,11 @@ queryTodaysWeight conn (User uid _) today = do
       [Only f] -> Just f
       _ -> Nothing
 
-queryWeights :: Connection -> User -> IO [(Day, Float)]
-queryWeights conn (User uid _) = do
-  ws <- query conn "SELECT date,weight FROM weights WHERE user_id = ? ORDER BY date ASC" (Only uid)
-  return $ map (\(DayWeight d w) -> (d, w)) ws
+queryWeights :: Connection -> User -> UTCTime -> Int -> IO [(Day, Float)]
+queryWeights conn (User uid _) today lastNDays = do
+  let days' = if lastNDays == 0 then maxBound else lastNDays
+  query conn
+    (Query $ T.concat [ "SELECT date,weight FROM weights WHERE (user_id = ?) AND "
+                      , "((julianday(?) - julianday(date)) <= ?) "
+                      , "ORDER BY date ASC"])
+    (uid, today, days')

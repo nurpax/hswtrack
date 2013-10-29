@@ -111,10 +111,11 @@ restListWeights :: H ()
 restListWeights =
   method GET (withLoggedInUser get)
   where
-    get user  = do
-      weights <- withDb $ \conn -> Model.queryWeights conn user
-      let ws = map (\(d,w) -> WeightSample d w) weights
-      writeJSON ws
+    get user  = logRunEitherT $ do
+      today     <- liftIO $ getCurrentTime
+      lastNDays <- tryGetIntParam "days"
+      weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
+      return . writeJSON $ map (\(d,w) -> WeightSample d w) weights
 
 -- | Render main page
 mainPage :: H ()
