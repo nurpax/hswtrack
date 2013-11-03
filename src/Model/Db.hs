@@ -6,7 +6,6 @@ module Model.Db (
   , queryWeights
   , queryTodaysWeight) where
 
-import           Control.Applicative
 import           Control.Monad
 import qualified Data.Text as T
 import           Data.Time (Day, UTCTime)
@@ -39,7 +38,7 @@ createTables conn = do
     execute_ conn
       (Query $
        T.concat [ "CREATE TABLE user_options ("
-                , "  user_id INTEGER PRIMARY KEY,"
+                , "  user_id INTEGER,"
                 , "  option_name TEXT,"
                 , "  option_value TEXT);"])
     execute_ conn
