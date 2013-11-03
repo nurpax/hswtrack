@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./.cabal-sandbox/bin/hswtrack &
+./.cabal-sandbox/bin/hswtrack --access-log '-' --error-log '-' &
 
 while inotifywait -r -e modify static snaplets; do
     echo Reload templates

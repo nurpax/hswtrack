@@ -1,10 +1,16 @@
 <script id="home-template" type="text/x-handlebars-template">
-  <p>Hello {{login}}</p>
   {{#weight}}
-  <p>Your weight today: {{../weight}}</p>
+  <p>Hi {{../login}}!</p>
+  <p>Your weight today: {{../weight}} kg  <button id="weight-clear-btn" class="btn btn-default btn-xs">Clear</button>
+</p>
   {{/weight}}
+
   {{^weight}}
-  <p>No weight specified for today.  Enter it</p>
+  <div class="well">
+    <p>Hi {{login}}!  Please enter your weight (kg):</p>
+    <input type="text" id="weight-input" placeholder="Enter weight.."></input>
+    <button id="weight-input-btn" class="btn btn-primary">Save</button>
+  </div>
   {{/weight}}
 
   <div class="row">

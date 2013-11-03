@@ -78,8 +78,23 @@ function renderSettings()
     $("#app-container").html(templateSettings(appContext));
 }
 
+function reloadHome(f)
+{
+    $.ajax({
+        type: "GET",
+        url: "/rest/app",
+        data: [],
+        success: function (resp) {
+            appContext = resp;
+            f();
+        }});
+}
+
 function renderHome()
 {
+    console.log(selectedGraphDays);
+
+    // TODO need to set highlight range button based on 'days'
     var plot = function(days) {
         selectedGraphDays = days;
         renderPlot();
@@ -92,6 +107,31 @@ function renderHome()
     $("label#graph-12-mo").click(function () { plot(12*30); });
     $("label#graph-24-mo").click(function () { plot(24*30); });
     $("label#graph-all").click(function () { plot(0) });
+
+    // Weight input
+    $("#weight-input-btn").click(function () {
+        var newWeight = $("input#weight-input").val();
+        $.ajax({
+            type: "POST",
+            url: "/rest/weight",
+            data: { weight: newWeight },
+            success: function(resp) {
+                reloadHome(function () { router.goto("/"); });
+            }
+        });
+    });
+
+    // Weight clear
+    $("#weight-clear-btn").click(function () {
+        $.ajax({
+            type: "POST",
+            url: "/rest/weight",
+            data: { weight: null },
+            success: function(resp) {
+                reloadHome(function () { router.goto("/"); });
+            }
+        });
+    });
 }
 
 $(function () {
@@ -101,17 +141,10 @@ $(function () {
 
     // Load UI parameters and setup routing + render main page after
     // finished all loading
-    $.ajax({
-        type: "GET",
-        url: "/rest/app",
-        data: [],
-        success: function(resp) {
-            appContext = resp;
-
-            // Routes
-            router.add("/", renderHome);
-            router.add("/settings", renderSettings);
-            router.start();
-        }});
-
+    reloadHome(function () {
+        // Routes
+        router.add("/", renderHome);
+        router.add("/settings", renderSettings);
+        router.start();
+    });
 });

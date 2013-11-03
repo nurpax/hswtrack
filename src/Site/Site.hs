@@ -107,6 +107,22 @@ restAppContext =
       let appContext = AppContext login weight
       writeJSON appContext
 
+restSetWeight :: H ()
+restSetWeight =
+  method POST (withLoggedInUser get)
+  where
+    get user  = logRunEitherT $ do
+      today <- liftIO $ getCurrentTime
+      w     <- tryGetTextParam "weight"
+      -- TODO should we have an id for weight in the UI, and delete
+      -- that instead of by 'today'?
+      if w == "" then
+        lift $ withDb $ \conn -> Model.setWeight conn user today Nothing
+       else do
+        weight <- parseFloat w
+        lift $ withDb $ \conn -> Model.setWeight conn user today (Just weight)
+      return . writeJSON $ (1 :: Int)
+
 restListWeights :: H ()
 restListWeights =
   method GET (withLoggedInUser get)
@@ -128,6 +144,7 @@ routes = [ ("/login",        handleLoginSubmit)
          , ("/new_user",     handleNewUser)
          , ("/rest/app",     restAppContext)
          , ("/rest/weights", restListWeights)
+         , ("/rest/weight",  restSetWeight)
          , ("/",             mainPage)
          , ("/favicon.ico",  serveFile "static/favicon.ico")
          , ("/static",       serveDirectory "static")

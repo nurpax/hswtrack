@@ -2,6 +2,7 @@
 
 module Model.Db (
     createTables
+  , setWeight
   , queryWeights
   , queryTodaysWeight) where
 
@@ -49,6 +50,15 @@ createTables conn = do
                 , "    user_id INTEGER,"
                 , "    weight FLOAT NOT NULL"
                 , ");"])
+
+setWeight :: Connection -> User -> UTCTime -> Maybe Float -> IO ()
+setWeight conn (User uid _) today weight =
+  maybe del ins weight
+  where
+    del =
+      execute conn "DELETE FROM weights WHERE user_id = ? AND date = date(?)" (uid, today)
+    ins v =
+      execute conn "INSERT INTO weights (user_id, date, weight) VALUES(?,date(?),?)" (uid, today, v)
 
 queryTodaysWeight :: Connection -> User -> UTCTime -> IO (Maybe Float)
 queryTodaysWeight conn (User uid _) today = do
