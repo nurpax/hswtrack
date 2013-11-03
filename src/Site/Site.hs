@@ -129,6 +129,7 @@ routes = [ ("/login",        handleLoginSubmit)
          , ("/rest/app",     restAppContext)
          , ("/rest/weights", restListWeights)
          , ("/",             mainPage)
+         , ("/favicon.ico",  serveFile "static/favicon.ico")
          , ("/static",       serveDirectory "static")
          ]
 
