@@ -3,3 +3,6 @@ dist/
 cabal.sandbox.config
 /site_key.txt
 /test.db
+/hswtrack.db
+/log/access.log
+/log/error.log
