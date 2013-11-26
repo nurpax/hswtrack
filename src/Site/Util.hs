@@ -4,9 +4,9 @@ module Site.Util (
     reader
   , logFail
   , logRunEitherT
-  , parseFloat
+  , parseDouble
   , tryGetParam
-  , tryGetFloatParam
+  , tryGetDoubleParam
   , tryGetIntParam
   , tryGetTextParam
   ) where
@@ -43,8 +43,8 @@ logFail = either (logError . T.encodeUtf8 . T.pack) id
 logRunEitherT :: EitherT String H (H ()) -> H ()
 logRunEitherT e = runEitherT e >>= logFail
 
-parseFloat :: T.Text -> EitherT String H Float
-parseFloat t =
+parseDouble :: T.Text -> EitherT String H Double
+parseDouble t =
   hoistEither (reader T.rational $ t)
 
 tryGetParam :: MonadSnap m => ByteString -> EitherT [Char] m ByteString
@@ -55,9 +55,9 @@ tryGetIntParam :: ByteString -> EitherT String H Int
 tryGetIntParam n =
   tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
 
-tryGetFloatParam :: ByteString -> EitherT String H Float
-tryGetFloatParam n =
-  tryGetTextParam n >>= \p -> parseFloat p
+tryGetDoubleParam :: ByteString -> EitherT String H Double
+tryGetDoubleParam n =
+  tryGetTextParam n >>= \p -> parseDouble p
 
 tryGetTextParam :: ByteString -> EitherT String H T.Text
 tryGetTextParam n =

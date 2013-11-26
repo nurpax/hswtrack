@@ -16,6 +16,8 @@ import           Control.Monad.Trans.Either
 import           Control.Error.Safe (tryJust)
 import           Control.Lens
 import           Data.ByteString (ByteString)
+import qualified Data.Map as M
+import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
 import           Data.Time
@@ -97,14 +99,25 @@ withDb :: (S.Connection -> IO a) -> H a
 withDb action =
   withTop db . withSqlite $ \conn -> action conn
 
+loadOptions :: S.Connection -> Model.User -> IO (M.Map String ConfigVal)
+loadOptions conn user = do
+  minWeight <- Model.queryOptionDouble conn user "min_graph_weight"
+  let options = maybeToList (fmap (\w -> ("minGraphWeight", CVDouble w)) minWeight)
+  return . M.fromList $ options
+
+
 restAppContext :: H ()
 restAppContext =
   method GET (withLoggedInUser get)
   where
     get user@(Model.User _ login)  = do
       today <- liftIO $ getCurrentTime
-      weight <- withDb $ \conn -> Model.queryTodaysWeight conn user today
-      let appContext = AppContext login weight
+      (weight, options) <-
+        withDb $ \conn -> do
+          weight <- Model.queryTodaysWeight conn user today
+          options <- loadOptions conn user
+          return (weight, options)
+      let appContext = AppContext login weight options
       writeJSON appContext
 
 restSetWeight :: H ()
@@ -119,7 +132,7 @@ restSetWeight =
       if w == "" then
         lift $ withDb $ \conn -> Model.setWeight conn user today Nothing
        else do
-        weight <- parseFloat w
+        weight <- parseDouble w
         lift $ withDb $ \conn -> Model.setWeight conn user today (Just weight)
       return . writeJSON $ (1 :: Int)
 
@@ -172,4 +185,3 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
 
     addAuthSplices h auth
     return $ App h s d a
-

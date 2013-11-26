@@ -49,7 +49,11 @@ function renderPlot()
         });
 
         x.domain(d3.extent(data, function(d) { return d.date; }));
-        y.domain(d3.extent(data, function(d) { return d.weight; }));
+
+        if (appContext.options.minGraphWeight)
+            y.domain([appContext.options.minGraphWeight, d3.max(data, function(d) { return d.weight; })]);
+        else
+            y.domain(d3.extent(data, function(d) { return d.weight; }));
 
         svg.append("g")
             .attr("class", "x axis")
@@ -92,8 +96,6 @@ function reloadHome(f)
 
 function renderHome()
 {
-    console.log(selectedGraphDays);
-
     // TODO need to set highlight range button based on 'days'
     var plot = function(days) {
         selectedGraphDays = days;

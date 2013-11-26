@@ -4,9 +4,11 @@ module Model.Db (
     createTables
   , setWeight
   , queryWeights
-  , queryTodaysWeight) where
+  , queryTodaysWeight
+  , queryOptionDouble) where
 
 import           Control.Monad
+import           Data.Maybe
 import qualified Data.Text as T
 import           Data.Time (Day, UTCTime)
 import           Database.SQLite.Simple
@@ -50,7 +52,7 @@ createTables conn = do
                 , "    weight FLOAT NOT NULL"
                 , ");"])
 
-setWeight :: Connection -> User -> UTCTime -> Maybe Float -> IO ()
+setWeight :: Connection -> User -> UTCTime -> Maybe Double -> IO ()
 setWeight conn (User uid _) today weight =
   maybe del ins weight
   where
@@ -59,7 +61,7 @@ setWeight conn (User uid _) today weight =
     ins v =
       execute conn "INSERT INTO weights (user_id, date, weight) VALUES(?,date(?),?)" (uid, today, v)
 
-queryTodaysWeight :: Connection -> User -> UTCTime -> IO (Maybe Float)
+queryTodaysWeight :: Connection -> User -> UTCTime -> IO (Maybe Double)
 queryTodaysWeight conn (User uid _) today = do
   weights <- query conn "SELECT weight FROM weights WHERE user_id = ? AND date = date(?) LIMIT 1" (uid, today)
   return $
@@ -67,7 +69,7 @@ queryTodaysWeight conn (User uid _) today = do
       [Only f] -> Just f
       _ -> Nothing
 
-queryWeights :: Connection -> User -> UTCTime -> Int -> IO [(Day, Float)]
+queryWeights :: Connection -> User -> UTCTime -> Int -> IO [(Day, Double)]
 queryWeights conn (User uid _) today lastNDays = do
   let days' = if lastNDays == 0 then maxBound else lastNDays
   query conn
@@ -75,3 +77,8 @@ queryWeights conn (User uid _) today lastNDays = do
                       , "((julianday(?) - julianday(date)) <= ?) "
                       , "ORDER BY date ASC"])
     (uid, today, days')
+
+queryOptionDouble :: Connection -> User -> T.Text -> IO (Maybe Double)
+queryOptionDouble conn (User uid _) optionName = do
+  v <- query conn "SELECT option_value FROM user_options WHERE user_id = ? AND option_name = ? LIMIT 1" (uid, optionName)
+  return . fmap (\(Only x) -> read x) . listToMaybe $ v

@@ -5,37 +5,48 @@
 -- rather these are more coupled with client app logic.
 module Site.REST
   ( AppContext(..)
+  , ConfigVal(..)
   , WeightSample(..)
   ) where
 
 import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
+import           Data.Attoparsec.Number (Number(D))
+import qualified Data.Map as M
 import qualified Data.Text as T
-import           Data.Time (UTCTime, Day, formatTime)
+import           Data.Time (Day, formatTime)
 import           System.Locale (defaultTimeLocale)
+
+data ConfigVal = CVString T.Text | CVDouble Double
 
 -- Everything needed for rendering the home/settings page
 data AppContext = AppContext {
     acLogin :: T.Text
-  , acWeight :: Maybe Float
+  , acWeight :: Maybe Double
+  , acSettings :: M.Map String ConfigVal
   }
 
 data WeightSample = WeightSample {
     wsDate :: Day
-  , wsWeight :: Float
+  , wsWeight :: Double
   }
 
 instance FromJSON AppContext where
   parseJSON (Object v) =
-    AppContext <$> v .: "login" <*> v .: "weight"
+    AppContext <$> v .: "login" <*> v .: "weight" <*> (pure M.empty)
   parseJSON _ = mzero
 
 instance ToJSON AppContext where
-  toJSON (AppContext u w) =
-    object [ "login"  .= u
-           , "weight" .= w
+  toJSON (AppContext u w o) =
+    object [ "login"   .= u
+           , "weight"  .= w
+           , "options" .= o
            ]
+
+instance ToJSON ConfigVal where
+  toJSON (CVString txt) = String txt
+  toJSON (CVDouble flt) = Number (D flt)
 
 instance ToJSON WeightSample where
   toJSON (WeightSample d w) =
