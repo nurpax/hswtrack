@@ -96,7 +96,6 @@ function reloadHome(f)
 
 function renderHome()
 {
-    // TODO need to set highlight range button based on 'days'
     var plot = function(days) {
         selectedGraphDays = days;
         renderPlot();
@@ -105,10 +104,19 @@ function renderHome()
     $("#app-container").html(templateHome(appContext));
     renderPlot();
 
-    $("label#graph-3-mo").click(function () { plot(3*30); });
-    $("label#graph-12-mo").click(function () { plot(12*30); });
-    $("label#graph-24-mo").click(function () { plot(24*30); });
-    $("label#graph-all").click(function () { plot(0) });
+    var attachRadio = function (name, n) {
+        $(name)
+            .each(function () {
+                if (selectedGraphDays == n)
+                    $(this).addClass("active");
+            })
+            .click(function () { plot(n); });
+    };
+
+    attachRadio("label#graph-3-mo", 3*30);
+    attachRadio("label#graph-12-mo", 12*30);
+    attachRadio("label#graph-24-mo", 24*30);
+    attachRadio("label#graph-all", 0);
 
     // Weight input
     $("#weight-input-btn").click(function () {
