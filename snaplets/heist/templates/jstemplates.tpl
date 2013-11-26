@@ -8,7 +8,7 @@
   {{^weight}}
   <div class="well">
     <p>Hi {{login}}!  Please enter your weight (kg):</p>
-    <input type="text" id="weight-input" placeholder="Enter weight.."></input>
+    <input type="number" id="weight-input" placeholder="Enter weight.."></input>
     <button id="weight-input-btn" class="btn btn-primary">Save</button>
   </div>
   {{/weight}}
