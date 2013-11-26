@@ -135,6 +135,9 @@ function renderHome()
 }
 
 $(function () {
+    Handlebars.registerHelper('round', function(num, dec) {
+        return new Handlebars.SafeString(num.toFixed(dec));
+    });
     // Compile templates
     templateHome = Handlebars.compile($("#home-template").html());
     templateSettings = Handlebars.compile($("#settings-template").html());

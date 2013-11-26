@@ -1,7 +1,7 @@
 <script id="home-template" type="text/x-handlebars-template">
   {{#weight}}
   <p>Hi {{../login}}!</p>
-  <p>Your weight today: {{../weight}} kg  <button id="weight-clear-btn" class="btn btn-default btn-xs">Clear</button>
+  <p>Your weight today: {{{round ../weight 1}}} kg  <button id="weight-clear-btn" class="btn btn-default btn-xs">Clear</button>
 </p>
   {{/weight}}
 
