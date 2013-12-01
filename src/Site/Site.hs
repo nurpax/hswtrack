@@ -12,14 +12,10 @@ module Site.Site
 import           Control.Concurrent
 import           Control.Applicative
 import           Control.Monad.Trans (liftIO, lift)
-import           Control.Monad.Trans.Either
-import           Control.Error.Safe (tryJust)
 import           Control.Lens
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
-import qualified Data.Text.Read as T
 import           Data.Time
-import           Database.SQLite.Simple as S
 import           Snap.Core
 import           Snap.Extras.JSON
 import           Snap.Snaplet
@@ -38,14 +34,6 @@ import           Site.REST
 import           Site.Util
 
 type H = Handler App App
-
--- | Render login form
-handleLogin :: Maybe T.Text -> Handler App (AuthManager App) ()
-handleLogin authError =
-  heistLocal (I.bindSplices errs) $ render "login"
-  where
-    errs = maybe noSplices splice authError
-    splice err = "loginError" ## I.textSplice err
 
 -- | Handle login submit.  Either redirect to '/' on success or give
 -- an error.  We deliberately do NOT show the AuthFailure on the login
@@ -79,23 +67,6 @@ handleNewUser =
     login user =
       logRunEitherT $
         lift (with auth (forceLogin user) >> redirect "/")
-
--- | Run actions with a logged in user or go back to the login screen
-withLoggedInUser :: (Model.User -> H ()) -> H ()
-withLoggedInUser action =
-  with auth currentUser >>= go
-  where
-    go Nothing  =
-      with auth $ handleLogin (Just "Must be logged in to view the main page")
-    go (Just u) = logRunEitherT $ do
-      uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
-      uid' <- hoistEither (reader T.decimal (unUid uid))
-      return $ action (Model.User uid' (userLogin u))
-
--- | Run an IO action with an SQLite connection
-withDb :: (S.Connection -> IO a) -> H a
-withDb action =
-  withTop db . withSqlite $ \conn -> action conn
 
 restAppContext :: H ()
 restAppContext =
