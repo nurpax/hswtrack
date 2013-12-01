@@ -125,15 +125,9 @@ restSetWeight =
   method POST (withLoggedInUser get)
   where
     get user  = logRunEitherT $ do
-      today <- liftIO $ getCurrentTime
-      w     <- tryGetTextParam "weight"
-      -- TODO should we have an id for weight in the UI, and delete
-      -- that instead of by 'today'?
-      if w == "" then
-        lift $ withDb $ \conn -> Model.setWeight conn user today Nothing
-       else do
-        weight <- parseDouble w
-        lift $ withDb $ \conn -> Model.setWeight conn user today (Just weight)
+      today  <- liftIO $ getCurrentTime
+      weight <- getDoubleParamOrEmpty "weight"
+      lift $ withDb $ \conn -> Model.setWeight conn user today weight
       return . writeJSON $ (1 :: Int)
 
 restListWeights :: H ()
@@ -142,7 +136,7 @@ restListWeights =
   where
     get user  = logRunEitherT $ do
       today     <- liftIO $ getCurrentTime
-      lastNDays <- tryGetIntParam "days"
+      lastNDays <- getIntParam "days"
       weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
       return . writeJSON $ map (\(d,w) -> WeightSample d w) weights
 

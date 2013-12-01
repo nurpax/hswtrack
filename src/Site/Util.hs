@@ -6,9 +6,10 @@ module Site.Util (
   , logRunEitherT
   , parseDouble
   , tryGetParam
-  , tryGetDoubleParam
-  , tryGetIntParam
-  , tryGetTextParam
+  , getDoubleParam
+  , getDoubleParamOrEmpty
+  , getIntParam
+  , getTextParam
   ) where
 
 import           Control.Error.Safe (tryJust)
@@ -51,14 +52,19 @@ tryGetParam :: MonadSnap m => ByteString -> EitherT [Char] m ByteString
 tryGetParam p =
   lift (getParam p) >>= tryJust ("missing get param '"++ show p ++"'")
 
-tryGetIntParam :: ByteString -> EitherT String H Int
-tryGetIntParam n =
+getIntParam :: ByteString -> EitherT String H Int
+getIntParam n =
   tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
 
-tryGetDoubleParam :: ByteString -> EitherT String H Double
-tryGetDoubleParam n =
-  tryGetTextParam n >>= \p -> parseDouble p
+getDoubleParam :: ByteString -> EitherT String H Double
+getDoubleParam n =
+  getTextParam n >>= \p -> parseDouble p
 
-tryGetTextParam :: ByteString -> EitherT String H T.Text
-tryGetTextParam n =
+getDoubleParamOrEmpty :: ByteString -> EitherT String H (Maybe Double)
+getDoubleParamOrEmpty n = do
+  v <- getTextParam n
+  if v == "" then return Nothing else parseDouble v >>= return . Just
+
+getTextParam :: ByteString -> EitherT String H T.Text
+getTextParam n =
   tryGetParam n >>= \p -> return . T.decodeUtf8 $ p
