@@ -21,7 +21,7 @@
       <div class="form-group row">
         <div class="col-md-12">
           <label>
-            <input type="checkbox" id="remember" name="remember" value="1">Remember me
+            <input type="checkbox" id="remember" name="remember" value="1">&nbsp;Remember me
           </label>
         </div>
       </div>
