@@ -13,8 +13,14 @@ module Site.Util (
   , withLoggedInUser
   , withDb
   , handleLogin
+
+  , module Snap.Core
+  , module Snap.Snaplet
+  , module Snap.Snaplet.Auth
+  , module Site.Application
   ) where
 
+------------------------------------------------------------------------------
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
@@ -23,17 +29,17 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
-
 import           Heist
 import qualified Heist.Interpreted as I
-import qualified Model
-import           Site.Application
 import           Snap.Core
 import           Snap.Snaplet
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.SqliteSimple
 import           Snap.Snaplet.Heist
-
+------------------------------------------------------------------------------
+import qualified Model
+import           Site.Application
+------------------------------------------------------------------------------
 
 type H = Handler App App
 

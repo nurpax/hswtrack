@@ -15,11 +15,6 @@ import           Control.Monad.Trans (liftIO, lift)
 import           Control.Lens
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
-import           Data.Time
-import           Snap.Core
-import           Snap.Extras.JSON
-import           Snap.Snaplet
-import           Snap.Snaplet.Auth
 import           Snap.Snaplet.Auth.Backends.SqliteSimple
 import           Snap.Snaplet.Heist
 import           Snap.Snaplet.Session.Backends.CookieSession
@@ -32,6 +27,7 @@ import qualified Model
 import           Site.Application
 import           Site.REST
 import           Site.Util
+------------------------------------------------------------------------------
 
 type H = Handler App App
 
@@ -67,40 +63,6 @@ handleNewUser =
     login user =
       logRunEitherT $
         lift (with auth (forceLogin user) >> redirect "/")
-
-restAppContext :: H ()
-restAppContext =
-  method GET (withLoggedInUser get)
-  where
-    get user@(Model.User _ login)  = do
-      today <- liftIO $ getCurrentTime
-      (weight, options) <-
-        withDb $ \conn -> do
-          weight <- Model.queryTodaysWeight conn user today
-          options <- Model.queryOptions conn user
-          return (weight, options)
-      let appContext = AppContext login weight options
-      writeJSON appContext
-
-restSetWeight :: H ()
-restSetWeight =
-  method POST (withLoggedInUser get)
-  where
-    get user  = logRunEitherT $ do
-      today  <- liftIO $ getCurrentTime
-      weight <- getDoubleParamOrEmpty "weight"
-      lift $ withDb $ \conn -> Model.setWeight conn user today weight
-      return . writeJSON $ (1 :: Int)
-
-restListWeights :: H ()
-restListWeights =
-  method GET (withLoggedInUser get)
-  where
-    get user  = logRunEitherT $ do
-      today     <- liftIO $ getCurrentTime
-      lastNDays <- getIntParam "days"
-      weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
-      return . writeJSON $ map (\(d,w) -> WeightSample d w) weights
 
 -- | Render main page
 mainPage :: H ()
