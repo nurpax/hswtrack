@@ -7,17 +7,23 @@
     <div class="well">
       <form method="post" action="${postAction}">
       <div class="form-group row">
-          <label for="username" class="col-md-4 control-label">Username</label>
-          <div class="col-md-8">
+          <div class="col-md-12">
               <input class="form-control" type="text" id="username" name="login" placeholder="Username" />
           </div>
       </div>
 
       <div class="form-group row">
-          <label for="password" class="col-md-4 control-label">Password</label>
-          <div class="col-md-8">
+          <div class="col-md-12">
               <input class="form-control" type="password" id="password" name="password" placeholder="Password" />
           </div>
+      </div>
+
+      <div class="form-group row">
+        <div class="col-md-12">
+          <label>
+            <input type="checkbox" id="remember" name="remember" value="1">Remember me
+          </label>
+        </div>
       </div>
 
       <div class="row">

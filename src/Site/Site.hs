@@ -37,7 +37,7 @@ type H = Handler App App
 -- login exists in the user database.
 handleLoginSubmit :: H ()
 handleLoginSubmit =
-  with auth $ loginUser "login" "password" Nothing
+  with auth $ loginUser "login" "password" (Just "remember")
     (\_ -> handleLogin . Just $ "Unknown login or incorrect password")
     (redirect "/")
 
