@@ -18,7 +18,7 @@ import qualified Data.Text as T
 import           Data.Time (Day, formatTime)
 import           System.Locale (defaultTimeLocale)
 
-data ConfigVal = CVString T.Text | CVDouble Double
+import           Model
 
 -- Everything needed for rendering the home/settings page
 data AppContext = AppContext {

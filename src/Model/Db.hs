@@ -5,10 +5,12 @@ module Model.Db (
   , setWeight
   , queryWeights
   , queryTodaysWeight
+  , queryOptions
   , queryOptionDouble) where
 
 import           Control.Monad
 import           Data.Maybe
+import qualified Data.Map as M
 import qualified Data.Text as T
 import           Data.Time (Day, UTCTime)
 import           Database.SQLite.Simple
@@ -77,6 +79,13 @@ queryWeights conn (User uid _) today lastNDays = do
                       , "((julianday(?) - julianday(date)) <= ?) "
                       , "ORDER BY date ASC"])
     (uid, today, days')
+
+queryOptions :: Connection -> User -> IO (M.Map String ConfigVal)
+queryOptions conn user = do
+  minWeight <- queryOptionDouble conn user "min_graph_weight"
+  let options = maybeToList (fmap (\w -> ("minGraphWeight", CVDouble w)) minWeight)
+  return . M.fromList $ options
+
 
 queryOptionDouble :: Connection -> User -> T.Text -> IO (Maybe Double)
 queryOptionDouble conn (User uid _) optionName = do
