@@ -8,18 +8,20 @@ module Site.REST
   , ConfigVal(..)
   , WeightSample(..)
   , restAppContext
+  , restLoginError
   , restSetWeight
   , restListWeights
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative
-import           Control.Monad
+import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
+import           Control.Monad.Trans.Either
 import           Data.Aeson
 import           Data.Attoparsec.Number (Number(D))
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Text.Read as T
 import           Data.Time
 import           Snap.Extras.JSON
 import           System.Locale (defaultTimeLocale)
@@ -32,9 +34,15 @@ type H = Handler App App
 
 -- Everything needed for rendering the home/settings page
 data AppContext = AppContext {
-    acLogin :: T.Text
-  , acWeight :: Maybe Double
-  , acSettings :: M.Map String ConfigVal
+    acLoggedIn :: Bool
+  , acLoginError :: Maybe T.Text
+  , acContext :: Maybe LoggedInContext
+  }
+
+data LoggedInContext = LoggedInContext {
+    _ctxLogin :: T.Text
+  , _ctxWeight :: Maybe Double
+  , _ctxSettings :: M.Map String ConfigVal
   }
 
 data WeightSample = WeightSample {
@@ -42,13 +50,15 @@ data WeightSample = WeightSample {
   , wsWeight :: Double
   }
 
-instance FromJSON AppContext where
-  parseJSON (Object v) =
-    AppContext <$> v .: "login" <*> v .: "weight" <*> (pure M.empty)
-  parseJSON _ = mzero
-
 instance ToJSON AppContext where
-  toJSON (AppContext u w o) =
+  toJSON (AppContext loggedIn e ctx) =
+    object [ "loggedIn"   .= loggedIn
+           , "loginError" .= e
+           , "context"    .= ctx
+           ]
+
+instance ToJSON LoggedInContext where
+  toJSON (LoggedInContext u w o) =
     object [ "login"   .= u
            , "weight"  .= w
            , "options" .= o
@@ -64,10 +74,35 @@ instance ToJSON WeightSample where
            , "weight" .= w
            ]
 
+-- | Run actions with a logged in user or go back to the login screen
+requireLoggedInUser :: (Model.User -> H ()) -> H ()
+requireLoggedInUser action =
+  with auth currentUser >>= go
+  where
+    go Nothing  = do
+      modifyResponse $ setResponseStatus 403 "Login required"
+
+    go (Just u) = logRunEitherT $ do
+      uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
+      uid' <- hoistEither (reader T.decimal (unUid uid))
+      return $ action (Model.User uid' (userLogin u))
+
+-- Every page render calls this handler to get an "app context".  This
+-- context struct contains things like is the user logged in, what's
+-- his name, etc.  This is used on client-side to implement login
+-- screen, among other things.
 restAppContext :: H ()
 restAppContext =
-  method GET (withLoggedInUser get)
+  with auth currentUser >>= tryLogin
   where
+    tryLogin Nothing =
+      writeJSON (AppContext False Nothing Nothing)
+
+    tryLogin (Just u) = logRunEitherT $ do
+      uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
+      uid' <- hoistEither (reader T.decimal (unUid uid))
+      return $ get (Model.User uid' (userLogin u))
+
     get user@(Model.User _ login)  = do
       today <- liftIO $ getCurrentTime
       (weight, options) <-
@@ -75,12 +110,16 @@ restAppContext =
           weight <- Model.queryTodaysWeight conn user today
           options <- Model.queryOptions conn user
           return (weight, options)
-      let appContext = AppContext login weight options
+      let appContext = AppContext True Nothing (Just (LoggedInContext login weight options))
       writeJSON appContext
+
+restLoginError :: MonadSnap m => T.Text -> m ()
+restLoginError e =
+  writeJSON (AppContext False (Just e) Nothing)
 
 restSetWeight :: H ()
 restSetWeight =
-  method POST (withLoggedInUser get)
+  method POST (requireLoggedInUser get)
   where
     get user  = logRunEitherT $ do
       today  <- liftIO $ getCurrentTime
@@ -90,11 +129,10 @@ restSetWeight =
 
 restListWeights :: H ()
 restListWeights =
-  method GET (withLoggedInUser get)
+  method GET (requireLoggedInUser get)
   where
     get user  = logRunEitherT $ do
       today     <- liftIO $ getCurrentTime
       lastNDays <- getIntParam "days"
       weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
       return . writeJSON $ map (\(d,w) -> WeightSample d w) weights
-

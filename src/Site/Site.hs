@@ -10,18 +10,14 @@ module Site.Site
 
 ------------------------------------------------------------------------------
 import           Control.Concurrent
-import           Control.Applicative
-import           Control.Monad.Trans (liftIO, lift)
+import           Control.Monad.Trans (liftIO)
 import           Control.Lens
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import           Snap.Snaplet.Auth.Backends.SqliteSimple
-import           Snap.Snaplet.Heist
 import           Snap.Snaplet.Session.Backends.CookieSession
 import           Snap.Snaplet.SqliteSimple
 import           Snap.Util.FileServe
-import           Heist
-import qualified Heist.Interpreted as I
 ------------------------------------------------------------------------------
 import qualified Model
 import           Site.Application
@@ -31,15 +27,11 @@ import           Site.Util
 
 type H = Handler App App
 
--- | Handle login submit.  Either redirect to '/' on success or give
--- an error.  We deliberately do NOT show the AuthFailure on the login
--- error, as we don't want to reveal to visitors whether or not the
--- login exists in the user database.
 handleLoginSubmit :: H ()
 handleLoginSubmit =
   with auth $ loginUser "login" "password" (Just "remember")
-    (\_ -> handleLogin . Just $ "Unknown login or incorrect password")
-    (redirect "/")
+    (\_ -> restLoginError "Incorrect login or password")
+    (withTop' id $ restAppContext)
 
 -- | Logs out and redirects the user to the site index.
 handleLogout :: H ()
@@ -48,47 +40,34 @@ handleLogout = with auth logout >> redirect "/"
 -- | Handle new user form submit
 handleNewUser :: H ()
 handleNewUser =
-  method GET (renderNewUserForm Nothing) <|> method POST handleFormSubmit
+  method POST $ do
+    authUser <- with auth $ registerUser "login" "password"
+    either respondNewUserErr login authUser
+
   where
-    handleFormSubmit = do
-      authUser <- with auth $ registerUser "login" "password"
-      either (renderNewUserForm . Just) login authUser
+    login user = with auth (forceLogin user) >> restAppContext
 
-    renderNewUserForm (err :: Maybe AuthFailure) =
-      heistLocal (I.bindSplices errs) $ render "new_user"
-      where
-        errs = maybe noSplices splice err
-        splice e = "newUserError" ## I.textSplice . T.pack . show $ e
+    respondNewUserErr (err :: AuthFailure) =
+      restLoginError $ (T.pack . show $ err)
 
-    login user =
-      logRunEitherT $
-        lift (with auth (forceLogin user) >> redirect "/")
-
--- | Render main page
-mainPage :: H ()
-mainPage = withLoggedInUser (\_ -> render "/index")
 
 -- | The application's routes.
 routes :: [(ByteString, Handler App App ())]
-routes = [ ("/login",        handleLoginSubmit)
-         , ("/logout",       handleLogout)
-         , ("/new_user",     handleNewUser)
-         , ("/rest/app",     restAppContext)
-         , ("/rest/weights", restListWeights)
-         , ("/rest/weight",  restSetWeight)
-         , ("/",             mainPage)
-         , ("/favicon.ico",  serveFile "static/favicon.ico")
-         , ("/static",       serveDirectory "static")
+routes = [ ("/rest/login",    handleLoginSubmit)
+         , ("/rest/new_user", handleNewUser)
+         , ("/logout",        handleLogout)
+         , ("/rest/app",      method GET restAppContext)
+         , ("/rest/weights",  restListWeights)
+         , ("/rest/weight",   restSetWeight)
+         , ("/",              serveFile "static/index.html")
+         , ("/favicon.ico",   serveFile "static/favicon.ico")
+         , ("/static",        serveDirectory "static")
          ]
 
 -- | The application initializer.
 app :: SnapletInit App App
 app = makeSnaplet "app" "An snaplet example application." Nothing $ do
-    -- addRoutes must be called before heistInit - heist wants to
-    -- serve "" itself which means our mainPage handler never gets a
-    -- chance to get called.
     addRoutes routes
-    h <- nestSnaplet "" heist $ heistInit "templates"
     s <- nestSnaplet "sess" sess $
            initCookieSessionManager "site_key.txt" "sess" (Just 3600)
 
@@ -100,6 +79,4 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     -- into the Model to create all the DB tables if necessary.
     let c = sqliteConn $ d ^# snapletValue
     liftIO $ withMVar c $ \conn -> Model.createTables conn
-
-    addAuthSplices h auth
-    return $ App h s d a
+    return $ App s d a

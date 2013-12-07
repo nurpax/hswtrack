@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Meta, title, CSS, favicons, etc. -->
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="">
+<meta name="author" content="">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Weightrkr 2.0</title>
+
+<!-- Bootstrap core CSS -->
+<link href="static/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet">
+
+<!-- App css -->
+<link href="static/style.css" rel="stylesheet">
+
+<!-- Favicons -->
+<!-- <link rel="apple-touch-icon-precomposed" sizes="144x144" href="./assets/ico/apple-touch-icon-144-precomposed.png">
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="./assets/ico/apple-touch-icon-114-precomposed.png">
+  <link rel="apple-touch-icon-precomposed" sizes="72x72" href="./assets/ico/apple-touch-icon-72-precomposed.png">
+                <link rel="apple-touch-icon-precomposed" href="./assets/ico/apple-touch-icon-57-precomposed.png">
+                               <link rel="shortcut icon" href="./assets/ico/favicon.png">
+-->
+
+    <!-- Place anything custom after this. -->
+  </head>
+  <body class="bs-docs-home">
+    <!-- Docs master nav -->
+    <header class="navbar navbar-inverse navbar-fixed-top bs-docs-nav" role="banner">
+  <div class="container">
+    <div class="navbar-header">
+      <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="#/" class="navbar-brand">Weightrkr 2.0</a>
+    </div>
+    <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+      <ul class="nav navbar-nav">
+        <li>
+          <a href="#/settings">Settings</a>
+        </li>
+        <li>
+          <a href="/logout">Logout</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<script id="home-template" type="text/x-handlebars-template">
+  {{#weight}}
+  <p>Hi {{../login}}!</p>
+  <p>Your weight today: {{{round ../weight 1}}} kg  <button id="weight-clear-btn" class="btn btn-default btn-xs">Clear</button>
+</p>
+  {{/weight}}
+
+  {{^weight}}
+  <div class="well">
+    <p>Hi {{login}}!  Please enter your weight (kg):</p>
+    <input type="number" id="weight-input" placeholder="Enter weight.."></input>
+    <button id="weight-input-btn" class="btn btn-primary">Save</button>
+  </div>
+  {{/weight}}
+
+  <div class="row">
+    <div id="weight-plot" class="col-md-12"></div>
+  </div>
+
+  <div class="btn-group" data-toggle="buttons">
+    <label class="btn btn-default btn-sm" id="graph-3-mo">
+      <input type="radio" name="graph-range"><small>3 months</small>
+    </label>
+    <label class="btn btn-default btn-sm" id="graph-12-mo">
+      <input type="radio" name="graph-range"><small>12 months</small>
+    </label>
+    <label class="btn btn-default btn-sm" id="graph-24-mo">
+      <input type="radio" name="graph-range"><small>24 months</small>
+    </label>
+    <label class="btn btn-default btn-sm" id="graph-all">
+      <input type="radio" name="graph-range"><small>Lifetime</small>
+    </label>
+  </div>
+
+</script>
+
+<script id="settings-template" type="text/x-handlebars-template">
+  Settings for {{login}}
+</script>
+
+
+<script id="login-template" type="text/x-handlebars-template">
+  <div class="col-md-3">
+
+    {{#loginError}}
+    <div class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+      {{../loginError}}
+    </div>
+    {{/loginError}}
+
+    <div class="well">
+      <form id="login">
+        <div class="form-group row">
+          <div class="col-md-12">
+            <input class="form-control" type="text" id="username" name="login" placeholder="Username" />
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <div class="col-md-12">
+            <input class="form-control" type="password" id="password" name="password" placeholder="Password" />
+          </div>
+        </div>
+
+        {{#if loginForm}}
+        <div class="form-group row">
+          <div class="col-md-12">
+            <label>
+              <input type="checkbox" id="remember" name="remember" value="1">&nbsp;Remember me
+            </label>
+          </div>
+        </div>
+        {{/if}}
+
+        <div class="row">
+          <button class="btn btn-primary col-md-12" type="submit">
+            {{#if loginForm}}
+            Login
+            {{else}}
+            Create a New User
+            {{/if}}
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    {{#if loginForm}}
+    <p>Don't have a login yet? <a href="#/new_user">Create a new user</a></p>
+    {{/if}}
+
+  </div>
+</script>
+
+
+  <!-- Page content of course! -->
+  <main class="bs-masthead" id="content" role="main">
+    <div class="container">
+      <div id="app-container">
+      </div>
+    </div>
+  </main>
+
+    <!-- JS and analytics only. -->
+    <!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="static/jquery-2.0.3/jquery.min.js"></script>
+<script src="static/bootstrap-3.0.0/js/bootstrap.min.js"></script>
+<script src="static/handlebars-1.0.0/handlebars.js"></script>
+<script src="static/router.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script src="static/app.js"></script>
+
+  </body>
+</html>

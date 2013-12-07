@@ -10,10 +10,7 @@ module Site.Util (
   , getDoubleParamOrEmpty
   , getIntParam
   , getTextParam
-  , withLoggedInUser
   , withDb
-  , handleLogin
-
   , module Snap.Core
   , module Snap.Snaplet
   , module Snap.Snaplet.Auth
@@ -29,39 +26,15 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
-import           Heist
-import qualified Heist.Interpreted as I
 import           Snap.Core
 import           Snap.Snaplet
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.SqliteSimple
-import           Snap.Snaplet.Heist
 ------------------------------------------------------------------------------
-import qualified Model
 import           Site.Application
 ------------------------------------------------------------------------------
 
 type H = Handler App App
-
--- | Render login form
-handleLogin :: Maybe T.Text -> Handler App (AuthManager App) ()
-handleLogin authError =
-  heistLocal (I.bindSplices errs) $ render "login"
-  where
-    errs = maybe noSplices splice authError
-    splice err = "loginError" ## I.textSplice err
-
--- | Run actions with a logged in user or go back to the login screen
-withLoggedInUser :: (Model.User -> H ()) -> H ()
-withLoggedInUser action =
-  with auth currentUser >>= go
-  where
-    go Nothing  =
-      with auth $ handleLogin (Just "Must be logged in to view the main page")
-    go (Just u) = logRunEitherT $ do
-      uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
-      uid' <- hoistEither (reader T.decimal (unUid uid))
-      return $ action (Model.User uid' (userLogin u))
 
 -- | Run an IO action with an SQLite connection
 withDb :: (S.Connection -> IO a) -> H a
