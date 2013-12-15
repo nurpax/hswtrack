@@ -1,5 +1,6 @@
 
 var appContext = null;
+var weights = null;
 var templateHome = null;
 var templateSettings = null;
 var templateLogin = null;
@@ -9,12 +10,13 @@ var selectedGraphDays = 3*30;
 function checkLogin(err) {
     if (err.status == 403) {
         appContext = null;
+        router.start();
         router.goto("/login");
     }
 }
 
-function renderPlot()
-{
+function renderPlot() {
+    var data   = weights;
     var svgDiv = $("div#weight-plot");
 
     var margin = {top: 10, right: 10, bottom: 30, left: 25},
@@ -49,63 +51,64 @@ function renderPlot()
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    var getParams = "?days=" + selectedGraphDays;
+    var pd = data.map(function (d) { return { date: parseDate(d.date), weight: d.weight } });
+    x.domain(d3.extent(pd, function(d) { return d.date; }));
 
-    d3.json("/rest/weights"+getParams, function(error, data) {
-        // Unfortunately AJAX errors here don't get handle by
-        // $.ajaxSetup defaults, since this doesn't call into jquery.
-        if (error) {
-            checkLogin(error);
-            return;
-        }
+    if (appContext.context.options.minGraphWeight)
+        y.domain([appContext.context.options.minGraphWeight, d3.max(pd, function(d) { return d.weight; })]);
+    else
+        y.domain(d3.extent(pd, function(d) { return d.weight; }));
 
-        data.forEach(function(d) {
-            d.date = parseDate(d.date);
-        });
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
 
-        x.domain(d3.extent(data, function(d) { return d.date; }));
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Weight (kg)");
 
-        if (appContext.context.options.minGraphWeight)
-            y.domain([appContext.context.options.minGraphWeight, d3.max(data, function(d) { return d.weight; })]);
-        else
-            y.domain(d3.extent(data, function(d) { return d.weight; }));
+    svg.append("path")
+        .datum(pd)
+        .attr("class", "line")
+        .attr("d", line);
+}
 
-        svg.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis);
-
-        svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis)
-            .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text("Weight (kg)");
-
-        svg.append("path")
-            .datum(data)
-            .attr("class", "line")
-            .attr("d", line);
+function loadWeightsDfd(ndays) {
+    return $.ajax({
+        type: "GET",
+        url: "/rest/weights",
+        data: { days: ndays }
     });
 }
 
-function reloadHome(f)
-{
-    $.ajax({
+function loadAppContextDfd() {
+    return $.ajax({
         type: "GET",
         url: "/rest/app",
-        data: [],
-        success: function (resp) {
-            appContext = resp;
-            f();
-        }});
+        data: []
+    });
 }
 
-function renderLoginScreen(url)
-{
+function reloadHome(f) {
+    // Load home & weights concurrently
+    $.when(loadAppContextDfd(), loadWeightsDfd(selectedGraphDays)).done(
+        function (resp, wresp) {
+            appContext = resp[0];
+            weights    = wresp[0];
+            if (f)
+                f();
+            router.goto("/");
+        });
+}
+
+function renderLoginScreen(url) {
     var ctx = appContext ? appContext : { };
 
     if (url == "new_user")
@@ -125,24 +128,22 @@ function renderLoginScreen(url)
                      if (!resp.loggedIn) {
                          router.goto(url);
                      } else {
-                         router.goto("/");
+                         router.start();
+                         reloadHome();
                      }
                  }});
     });
 }
 
-function renderNewUser()
-{
+function renderNewUser() {
     renderLoginScreen("new_user");
 }
 
-function renderLogin()
-{
+function renderLogin() {
     renderLoginScreen("login");
 }
 
-function renderSettings()
-{
+function renderSettings() {
     if (!appContext || !appContext.loggedIn) {
         renderLogin();
         return;
@@ -151,8 +152,7 @@ function renderSettings()
     $("#app-container").html(templateSettings(appContext.context));
 }
 
-function renderHome()
-{
+function renderHome() {
     if (!appContext || !appContext.loggedIn) {
         renderLogin();
         return;
@@ -160,7 +160,11 @@ function renderHome()
 
     var plot = function(days) {
         selectedGraphDays = days;
-        renderPlot();
+        wdfd = loadWeightsDfd(days);
+        $.when(wdfd).done(function (ws) {
+            weights = ws;
+            renderPlot();
+        });
     };
 
     $("#app-container").html(templateHome(appContext.context));
@@ -172,7 +176,9 @@ function renderHome()
                 if (selectedGraphDays == n)
                     $(this).addClass("active");
             })
-            .click(function () { plot(n); });
+            .click(function () {
+                plot(n);
+            });
     };
 
     attachRadio("label#graph-3-mo", 3*30);
@@ -187,9 +193,7 @@ function renderHome()
             type: "POST",
             url: "/rest/weight",
             data: { weight: newWeight },
-            success: function(resp) {
-                reloadHome(function () { router.goto("/"); });
-            }
+            success: function (r) { reloadHome(); }
         });
     });
 
@@ -199,9 +203,7 @@ function renderHome()
             type: "POST",
             url: "/rest/weight",
             data: { weight: null },
-            success: function(resp) {
-                reloadHome(function () { router.goto("/"); });
-            }
+            success: function (r) { reloadHome(); }
         });
     });
 }
@@ -222,10 +224,15 @@ $(function () {
         checkLogin(jqXHR);
     }});
 
-    router.add("/", renderHome);
+    router.add("/",         renderHome);
     router.add("/settings", renderSettings);
-    router.add("/login", renderLogin);
+    router.add("/login",    renderLogin);
     router.add("/new_user", renderNewUser);
-    router.start();
-    reloadHome(function () { router.goto("/"); });
+
+    // Ask to reload the home page and if load OK, start router.  We
+    // don't want to start the router before the AJAX load for home
+    // succeeds, otherwise we're always first taken to a login page.
+    // On error, automated AJAX error handlers will take us to the
+    // login screen.
+    reloadHome(function () { router.start(); });
 });
