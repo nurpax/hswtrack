@@ -9,6 +9,7 @@ module Site.Site
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative
 import           Control.Concurrent
 import           Control.Monad.Trans (liftIO)
 import           Control.Lens
@@ -59,6 +60,8 @@ routes = [ ("/rest/login",    handleLoginSubmit)
          , ("/rest/app",      method GET restAppContext)
          , ("/rest/weights",  restListWeights)
          , ("/rest/weight",   restSetWeight)
+         , ("/rest/notes",    restListNotes)
+         , ("/rest/note",     method POST restAddNote <|> method DELETE restDeleteNote)
          , ("/",              serveFile "static/index.html")
          , ("/favicon.ico",   serveFile "static/favicon.ico")
          , ("/static",        serveDirectory "static")

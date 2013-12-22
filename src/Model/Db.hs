@@ -6,8 +6,12 @@ module Model.Db (
   , queryWeights
   , queryTodaysWeight
   , queryOptions
-  , queryOptionDouble) where
+  , queryOptionDouble
+  , addNote
+  , deleteNote
+  , queryTodaysNotes) where
 
+import           Control.Applicative
 import           Control.Monad
 import           Data.Maybe
 import qualified Data.Map as M
@@ -16,6 +20,9 @@ import           Data.Time (Day, UTCTime)
 import           Database.SQLite.Simple
 
 import           Model.Types
+
+instance FromRow Note where
+  fromRow = Note <$> field <*> field <*> field
 
 tableExists :: Connection -> String -> IO Bool
 tableExists conn tblName = do
@@ -79,6 +86,18 @@ queryWeights conn (User uid _) today lastNDays = do
                       , "((julianday(?) - julianday(date)) <= ?) "
                       , "ORDER BY date ASC"])
     (uid, today, days')
+
+addNote :: Connection -> User -> UTCTime -> T.Text -> IO ()
+addNote conn (User uid _) today note =
+  execute conn "INSERT INTO notes (user_id,timestamp,comment) VALUES (?,?,?)" (uid, today, note)
+
+deleteNote :: Connection -> User -> Int -> IO ()
+deleteNote conn (User uid _) noteId =
+  execute conn "DELETE FROM notes WHERE user_id = ? AND id = ?" (uid, noteId)
+
+queryTodaysNotes :: Connection -> User -> UTCTime -> IO [Note]
+queryTodaysNotes conn (User uid _) today =
+  query conn "SELECT id,timestamp,comment FROM notes WHERE (user_id = ?) AND (date(timestamp) = date(?))" (uid, today)
 
 queryOptions :: Connection -> User -> IO (M.Map String ConfigVal)
 queryOptions conn user = do

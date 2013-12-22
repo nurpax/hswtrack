@@ -11,6 +11,9 @@ module Site.REST
   , restLoginError
   , restSetWeight
   , restListWeights
+  , restAddNote
+  , restDeleteNote
+  , restListNotes
   ) where
 
 ------------------------------------------------------------------------------
@@ -72,6 +75,13 @@ instance ToJSON WeightSample where
   toJSON (WeightSample d w) =
     object [ "date"  .= formatTime defaultTimeLocale "%F" d
            , "weight" .= w
+           ]
+
+instance ToJSON Note where
+  toJSON (Note i t n) =
+    object [ "id"   .= i
+           , "time" .= t
+           , "text" .= n
            ]
 
 -- | Run actions with a logged in user or go back to the login screen
@@ -136,3 +146,36 @@ restListWeights =
       lastNDays <- getIntParam "days"
       weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
       return . writeJSON $ map (\(d,w) -> WeightSample d w) weights
+
+restAddNote :: H ()
+restAddNote =
+  requireLoggedInUser get
+  where
+    get user  = logRunEitherT $ do
+      today    <- liftIO $ getCurrentTime
+      noteText <- getTextParam "text"
+      notes <- lift $ withDb $ \conn -> do
+        Model.addNote conn user today noteText
+        Model.queryTodaysNotes conn user today
+      return . writeJSON $ notes
+
+restDeleteNote :: H ()
+restDeleteNote =
+  requireLoggedInUser get
+  where
+    get user  = logRunEitherT $ do
+      today  <- liftIO $ getCurrentTime
+      noteId <- getIntParam "id"
+      notes <- lift $ withDb $ \conn -> do
+        Model.deleteNote conn user noteId
+        Model.queryTodaysNotes conn user today
+      return . writeJSON $ notes
+
+restListNotes :: H ()
+restListNotes =
+  method GET (requireLoggedInUser get)
+  where
+    get user  = logRunEitherT $ do
+      today <- liftIO $ getCurrentTime
+      notes <- lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
+      return . writeJSON $ notes
