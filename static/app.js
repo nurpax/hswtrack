@@ -1,5 +1,6 @@
 
 var templateHome = null;
+var templateNotes = null;
 var templateSettings = null;
 var templateLogin = null;
 
@@ -76,7 +77,7 @@ function renderPlot(app, weights) {
         .attr("d", line);
 }
 
-function loadWeightsDfd(ndays) {
+function loadWeights(ndays) {
     return $.ajax({
         type: "GET",
         url: "/rest/weights",
@@ -84,10 +85,18 @@ function loadWeightsDfd(ndays) {
     });
 }
 
-function loadAppContextDfd() {
+function loadAppContext() {
     return $.ajax({
         type: "GET",
         url: "/rest/app",
+        data: []
+    });
+}
+
+function loadNotes() {
+    return $.ajax({
+        type: "GET",
+        url: "/rest/notes",
         data: []
     });
 }
@@ -126,16 +135,48 @@ function renderLogin() {
 }
 
 function renderSettings() {
-    $.when(loadAppContextDfd()).done(
+    $.when(loadAppContext()).done(
         function (app) {
             $("#app-container").html(templateSettings(app.context));
         });
 }
 
-function renderHome(appContext, weights) {
+function renderComments(notes)
+{
+    $("#comments").html(templateNotes({ notes: notes }));
+
+    // Delete buttons
+    $("#comments").each(function () {
+        $("a#rm-note", this).each(function (idx) {
+            $(this).click(function (e) {
+                e.preventDefault();
+                $.ajax({ url: "/rest/note",
+                         type: "DELETE",
+                         data: { id: notes[idx].id },
+                         success: function (resp) {
+                             renderComments(resp);
+                         }
+                       });
+            });
+        });
+    });
+
+    // Add button
+    $("button#note-input-btn").click(function () {
+        $.ajax({ url: "/rest/note",
+                 type: "POST",
+                 data: { text: $("input#note-input").val() },
+                 success: function (resp) {
+                     renderComments(resp);
+                 }
+               });
+    });
+}
+
+function renderHome(appContext, weights, notes) {
     var plot = function(days) {
         selectedGraphDays = days;
-        wdfd = loadWeightsDfd(days);
+        wdfd = loadWeights(days);
         $.when(wdfd).done(function (ws) {
             renderPlot(appContext, ws);
         });
@@ -143,6 +184,7 @@ function renderHome(appContext, weights) {
 
     $("#app-container").html(templateHome(appContext.context));
     renderPlot(appContext, weights);
+    renderComments(notes);
 
     var attachRadio = function (name, n) {
         $(name)
@@ -185,9 +227,9 @@ function renderHome(appContext, weights) {
 function reloadHome()
 {
     // Load home & weights concurrently
-    $.when(loadAppContextDfd(), loadWeightsDfd(selectedGraphDays)).done(
-        function (resp, wresp) {
-            renderHome(resp[0], wresp[0]);
+    $.when(loadAppContext(), loadWeights(selectedGraphDays), loadNotes()).done(
+        function (resp, wresp, nresp) {
+            renderHome(resp[0], wresp[0], nresp[0]);
         });
 }
 
@@ -198,6 +240,7 @@ $(function () {
 
     // Compile templates
     templateHome = Handlebars.compile($("#home-template").html());
+    templateNotes = Handlebars.compile($("#notes-template").html());
     templateSettings = Handlebars.compile($("#settings-template").html());
     templateLogin = Handlebars.compile($("#login-template").html());
 
