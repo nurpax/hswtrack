@@ -1,6 +1,4 @@
 
-var appContext = null;
-var weights = null;
 var templateHome = null;
 var templateSettings = null;
 var templateLogin = null;
@@ -9,13 +7,11 @@ var selectedGraphDays = 3*30;
 
 function checkLogin(err) {
     if (err.status == 403) {
-        appContext = null;
-        router.start();
         router.goto("/login");
     }
 }
 
-function renderPlot() {
+function renderPlot(app, weights) {
     var data   = weights;
     var svgDiv = $("div#weight-plot");
 
@@ -54,8 +50,8 @@ function renderPlot() {
     var pd = data.map(function (d) { return { date: parseDate(d.date), weight: d.weight } });
     x.domain(d3.extent(pd, function(d) { return d.date; }));
 
-    if (appContext.context.options.minGraphWeight)
-        y.domain([appContext.context.options.minGraphWeight, d3.max(pd, function(d) { return d.weight; })]);
+    if (app.context.options.minGraphWeight)
+        y.domain([app.context.options.minGraphWeight, d3.max(pd, function(d) { return d.weight; })]);
     else
         y.domain(d3.extent(pd, function(d) { return d.weight; }));
 
@@ -96,20 +92,8 @@ function loadAppContextDfd() {
     });
 }
 
-function reloadHome(f) {
-    // Load home & weights concurrently
-    $.when(loadAppContextDfd(), loadWeightsDfd(selectedGraphDays)).done(
-        function (resp, wresp) {
-            appContext = resp[0];
-            weights    = wresp[0];
-            if (f)
-                f();
-            router.goto("/");
-        });
-}
-
-function renderLoginScreen(url) {
-    var ctx = appContext ? appContext : { };
+function renderLoginScreen(ctx, url) {
+    var ctx = ctx ? ctx : {};
 
     if (url == "new_user")
         ctx["loginForm"] = false;
@@ -124,51 +108,41 @@ function renderLoginScreen(url) {
                  type: "POST",
                  data: $(this).serialize(),
                  success: function(resp) {
-                     appContext = resp;
                      if (!resp.loggedIn) {
-                         router.goto(url);
+                         renderLoginScreen(resp, url);
                      } else {
-                         router.start();
-                         reloadHome();
+                         router.goto("/");
                      }
                  }});
     });
 }
 
 function renderNewUser() {
-    renderLoginScreen("new_user");
+    renderLoginScreen(null, "new_user");
 }
 
 function renderLogin() {
-    renderLoginScreen("login");
+    renderLoginScreen(null, "login");
 }
 
 function renderSettings() {
-    if (!appContext || !appContext.loggedIn) {
-        renderLogin();
-        return;
-    }
-
-    $("#app-container").html(templateSettings(appContext.context));
+    $.when(loadAppContextDfd()).done(
+        function (app) {
+            $("#app-container").html(templateSettings(app.context));
+        });
 }
 
-function renderHome() {
-    if (!appContext || !appContext.loggedIn) {
-        renderLogin();
-        return;
-    }
-
+function renderHome(appContext, weights) {
     var plot = function(days) {
         selectedGraphDays = days;
         wdfd = loadWeightsDfd(days);
         $.when(wdfd).done(function (ws) {
-            weights = ws;
-            renderPlot();
+            renderPlot(appContext, ws);
         });
     };
 
     $("#app-container").html(templateHome(appContext.context));
-    renderPlot();
+    renderPlot(appContext, weights);
 
     var attachRadio = function (name, n) {
         $(name)
@@ -208,6 +182,15 @@ function renderHome() {
     });
 }
 
+function reloadHome()
+{
+    // Load home & weights concurrently
+    $.when(loadAppContextDfd(), loadWeightsDfd(selectedGraphDays)).done(
+        function (resp, wresp) {
+            renderHome(resp[0], wresp[0]);
+        });
+}
+
 $(function () {
     Handlebars.registerHelper('round', function(num, dec) {
         return new Handlebars.SafeString(num.toFixed(dec));
@@ -224,15 +207,9 @@ $(function () {
         checkLogin(jqXHR);
     }});
 
-    router.add("/",         renderHome);
+    router.add("/",         reloadHome);
     router.add("/settings", renderSettings);
     router.add("/login",    renderLogin);
     router.add("/new_user", renderNewUser);
-
-    // Ask to reload the home page and if load OK, start router.  We
-    // don't want to start the router before the AJAX load for home
-    // succeeds, otherwise we're always first taken to a login page.
-    // On error, automated AJAX error handlers will take us to the
-    // login screen.
-    reloadHome(function () { router.start(); });
+    router.start();
 });
