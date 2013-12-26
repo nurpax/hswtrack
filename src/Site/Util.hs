@@ -27,6 +27,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
 import           Snap.Core
+import           Snap.Extras.CoreUtils
 import           Snap.Snaplet
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.SqliteSimple
@@ -51,9 +52,14 @@ reader p s =
 -- | Log Either Left values or run the Handler action.  To be used in
 -- situations where to user shouldn't see an error (either due to it
 -- being irrelevant or due to security) but we want to leave a trace
--- of the error case anyway.
+-- of the error and finish with a HTTP error code 400.
 logFail :: Either String (H ()) -> H ()
-logFail = either (logError . T.encodeUtf8 . T.pack) id
+logFail = either failReq id
+  where
+    failReq msg = do
+      let e = T.encodeUtf8 . T.pack $ msg
+      logError e
+      badReq e
 
 
 logRunEitherT :: EitherT String H (H ()) -> H ()
