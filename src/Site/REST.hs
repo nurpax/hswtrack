@@ -103,25 +103,17 @@ requireLoggedInUser action =
 -- screen, among other things.
 restAppContext :: H ()
 restAppContext =
-  with auth currentUser >>= tryLogin
+  requireLoggedInUser get
   where
-    tryLogin Nothing =
-      writeJSON (AppContext False Nothing Nothing)
-
-    tryLogin (Just u) = logRunEitherT $ do
-      uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
-      uid' <- hoistEither (reader T.decimal (unUid uid))
-      return $ get (Model.User uid' (userLogin u))
-
-    get user@(Model.User _ login)  = do
+    get user@(Model.User _ login) = do
       today <- liftIO $ getCurrentTime
       (weight, options) <-
-        withDb $ \conn -> do
+        lift $ withDb $ \conn -> do
           weight <- Model.queryTodaysWeight conn user today
           options <- Model.queryOptions conn user
           return (weight, options)
       let appContext = AppContext True Nothing (Just (LoggedInContext login weight options))
-      writeJSON appContext
+      return . writeJSON $ appContext
 
 restLoginError :: MonadSnap m => T.Text -> m ()
 restLoginError e =
