@@ -85,7 +85,7 @@ instance ToJSON Note where
            ]
 
 -- | Run actions with a logged in user or go back to the login screen
-requireLoggedInUser :: (Model.User -> H ()) -> H ()
+requireLoggedInUser :: (Model.User -> EitherT String H (H ())) -> H ()
 requireLoggedInUser action =
   with auth currentUser >>= go
   where
@@ -95,7 +95,7 @@ requireLoggedInUser action =
     go (Just u) = logRunEitherT $ do
       uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
       uid' <- hoistEither (reader T.decimal (unUid uid))
-      return $ action (Model.User uid' (userLogin u))
+      action (Model.User uid' (userLogin u))
 
 -- Every page render calls this handler to get an "app context".  This
 -- context struct contains things like is the user logged in, what's
@@ -131,7 +131,7 @@ restSetWeight :: H ()
 restSetWeight =
   method POST (requireLoggedInUser get)
   where
-    get user  = logRunEitherT $ do
+    get user = do
       today  <- liftIO $ getCurrentTime
       weight <- getDoubleParamOrEmpty "weight"
       lift $ withDb $ \conn -> Model.setWeight conn user today weight
@@ -141,7 +141,7 @@ restListWeights :: H ()
 restListWeights =
   method GET (requireLoggedInUser get)
   where
-    get user  = logRunEitherT $ do
+    get user = do
       today     <- liftIO $ getCurrentTime
       lastNDays <- getIntParam "days"
       weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
@@ -151,7 +151,7 @@ restAddNote :: H ()
 restAddNote =
   requireLoggedInUser get
   where
-    get user  = logRunEitherT $ do
+    get user = do
       today    <- liftIO $ getCurrentTime
       noteText <- getTextParam "text"
       notes <- lift $ withDb $ \conn -> do
@@ -163,7 +163,7 @@ restDeleteNote :: H ()
 restDeleteNote =
   requireLoggedInUser get
   where
-    get user  = logRunEitherT $ do
+    get user = do
       today  <- liftIO $ getCurrentTime
       noteId <- getIntParam "id"
       notes <- lift $ withDb $ \conn -> do
@@ -175,7 +175,7 @@ restListNotes :: H ()
 restListNotes =
   method GET (requireLoggedInUser get)
   where
-    get user  = logRunEitherT $ do
+    get user = do
       today <- liftIO $ getCurrentTime
       notes <- lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
       return . writeJSON $ notes
