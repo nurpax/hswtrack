@@ -84,6 +84,10 @@ instance ToJSON Note where
            , "text" .= n
            ]
 
+restLoginError :: MonadSnap m => T.Text -> m ()
+restLoginError e =
+  writeJSON (AppContext False (Just e) Nothing)
+
 -- | Run actions with a logged in user or go back to the login screen
 requireLoggedInUser :: (Model.User -> EitherT String H (H ())) -> H ()
 requireLoggedInUser action =
@@ -97,13 +101,18 @@ requireLoggedInUser action =
       uid' <- hoistEither (reader T.decimal (unUid uid))
       action (Model.User uid' (userLogin u))
 
+
+jsonResponse :: ToJSON a => (Model.User -> EitherT String H a) -> H ()
+jsonResponse action = requireLoggedInUser respond
+  where
+    respond user = (action user >>= return . writeJSON)
+
 -- Every page render calls this handler to get an "app context".  This
 -- context struct contains things like is the user logged in, what's
 -- his name, etc.  This is used on client-side to implement login
 -- screen, among other things.
 restAppContext :: H ()
-restAppContext =
-  requireLoggedInUser get
+restAppContext = jsonResponse get
   where
     get user@(Model.User _ login) = do
       today <- liftIO $ getCurrentTime
@@ -112,62 +121,50 @@ restAppContext =
           weight <- Model.queryTodaysWeight conn user today
           options <- Model.queryOptions conn user
           return (weight, options)
-      let appContext = AppContext True Nothing (Just (LoggedInContext login weight options))
-      return . writeJSON $ appContext
-
-restLoginError :: MonadSnap m => T.Text -> m ()
-restLoginError e =
-  writeJSON (AppContext False (Just e) Nothing)
+      return $ AppContext True Nothing (Just (LoggedInContext login weight options))
 
 restSetWeight :: H ()
 restSetWeight =
-  method POST (requireLoggedInUser get)
+  method POST (jsonResponse get)
   where
     get user = do
       today  <- liftIO $ getCurrentTime
       weight <- getDoubleParamOrEmpty "weight"
       lift $ withDb $ \conn -> Model.setWeight conn user today weight
-      return . writeJSON $ (1 :: Int)
+      return (1 :: Int)
 
 restListWeights :: H ()
-restListWeights =
-  method GET (requireLoggedInUser get)
+restListWeights = method GET (jsonResponse get)
   where
     get user = do
       today     <- liftIO $ getCurrentTime
       lastNDays <- getIntParam "days"
       weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
-      return . writeJSON $ map (\(d,w) -> WeightSample d w) weights
+      return . map (\(d,w) -> WeightSample d w) $ weights
 
 restAddNote :: H ()
-restAddNote =
-  requireLoggedInUser get
+restAddNote = jsonResponse get
   where
     get user = do
       today    <- liftIO $ getCurrentTime
       noteText <- getTextParam "text"
-      notes <- lift $ withDb $ \conn -> do
+      lift $ withDb $ \conn -> do
         Model.addNote conn user today noteText
         Model.queryTodaysNotes conn user today
-      return . writeJSON $ notes
 
 restDeleteNote :: H ()
-restDeleteNote =
-  requireLoggedInUser get
+restDeleteNote = jsonResponse get
   where
     get user = do
       today  <- liftIO $ getCurrentTime
       noteId <- getIntParam "id"
-      notes <- lift $ withDb $ \conn -> do
+      lift $ withDb $ \conn -> do
         Model.deleteNote conn user noteId
         Model.queryTodaysNotes conn user today
-      return . writeJSON $ notes
 
 restListNotes :: H ()
-restListNotes =
-  method GET (requireLoggedInUser get)
+restListNotes = method GET (jsonResponse get)
   where
     get user = do
       today <- liftIO $ getCurrentTime
-      notes <- lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
-      return . writeJSON $ notes
+      lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
