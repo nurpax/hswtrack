@@ -6,6 +6,8 @@ var templateLogin = null;
 
 var selectedGraphDays = 3*30;
 
+var workout = null;
+
 function checkLogin(err) {
     if (err.status == 403) {
         router.goto("/login");
@@ -250,7 +252,10 @@ $(function () {
         checkLogin(jqXHR);
     }});
 
+    workout = new Workout();
+
     router.add("/",         reloadHome);
+    router.add("/workout",  function () { workout.render(); });
     router.add("/settings", renderSettings);
     router.add("/login",    renderLogin);
     router.add("/new_user", renderNewUser);
