@@ -54,6 +54,8 @@
   </div>
 </header>
 
+<!-- ------------------------------------------------------------------->
+<!-- Home screen & weight tracking -->
 <script id="home-template" type="text/x-handlebars-template">
   {{#weight}}
   <p>Hi {{../login}}!</p>
@@ -169,37 +171,47 @@
   </div>
 </script>
 
+<!-- ------------------------------------------------------------------->
+<!-- Workout tracking -->
+<script id="exercise-template" type="text/x-handlebars-template">
+  <h4>{{name}}</h4>
+
+  {{#each sets}}
+  <div class="row">
+    <div class="col-md-6">Reps: {{reps}} &times; {{weight}}</div>
+  </div>
+  {{/each}}
+
+  <div class="row">
+    <form class="add-set form-inline col-md-4">
+      <input class="reps" type="number" placeholder="Reps.." />
+      <input class="weight" type="number" placeholder="Weight.." />
+      <button class="btn btn-default" type="submit">Add Set</button>
+    </form>
+  </div>
+</script>
+
+<script id="workout-template" type="text/x-handlebars-template">
+  {{#each exercises}}
+  <div class="exercise"></div>
+  {{/each}}
+  <div>TODO add exercise button here</div>
+</script>
 
 <script id="workouts-template" type="text/x-handlebars-template">
 <div id="workouts">
   {{#each workouts}}
   <h3>Workout {{id}}</h3>
   <div class="workout">
-    {{#each exercises}}
-    <div class="exercise">
-      <h4>{{name}}</h4>
-
-      {{#each sets}}
-      <div class="row">
-        <div class="col-md-6">Reps: {{reps}} &times; {{weight}}</div>
-      </div>
-      {{/each}}
-      
-      <div class="row">
-        <form class="add-set form-inline col-md-4">
-          <input class="reps" type="number" placeholder="Reps.." />
-          <input class="weight" type="number" placeholder="Weight.." />
-          <button class="btn btn-default" type="submit">Add Set</button>
-        </form>
-      </div>
-    </div>
-  {{/each}}
   </div>
   {{/each}}
+  <div>TODO add button for adding a new workout</div>
 </div>
 </script>
 
-  <!-- Page content of course! -->
+<!-- ------------------------------------------------------------------->
+<!-- End of templates -->
+
   <main class="bs-masthead" id="content" role="main">
     <div class="container">
       <div id="app-container">

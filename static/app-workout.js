@@ -29,6 +29,23 @@ var mockData = {
 
 function Workout() {
     this.mainTemplate = Handlebars.compile($("#workouts-template").html());
+    this.workoutTemplate = Handlebars.compile($("#workout-template").html());
+    this.exerciseTemplate = Handlebars.compile($("#exercise-template").html());
+};
+
+Workout.prototype._renderExercise = function (elt, exercise) {
+    var self = this;
+    $(elt).html(self.exerciseTemplate(exercise));
+};
+
+Workout.prototype._renderWorkout = function (elt, workout) {
+    var self = this;
+    $(elt).html(self.workoutTemplate(workout));
+
+    $(".exercise").each(function (exerciseIdx) {
+        var exercise = workout.exercises[exerciseIdx];
+        self._renderExercise(this, exercise);
+    });
 };
 
 Workout.prototype.render = function () {
@@ -36,10 +53,9 @@ Workout.prototype.render = function () {
 
     $("#app-container").html(this.mainTemplate(workouts));
 
+    var self = this;
     $(".workout").each(function (workoutIdx) {
         var workout = workouts.workouts[workoutIdx];
-        $(".exercise").each(function (exerciseIdx) {
-            var exercise = workout.exercises[exerciseIdx];
-        });
+        self._renderWorkout(this, workout);
     });
 };
