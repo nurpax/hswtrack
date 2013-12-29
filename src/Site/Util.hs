@@ -9,6 +9,7 @@ module Site.Util (
   , getDoubleParam
   , getDoubleParamOrEmpty
   , getIntParam
+  , getInt64Param
   , getTextParam
   , withDb
   , module Snap.Core
@@ -22,6 +23,7 @@ import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
 import           Data.ByteString (ByteString)
+import           Data.Int (Int64)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
@@ -75,6 +77,10 @@ tryGetParam p =
 
 getIntParam :: ByteString -> EitherT String H Int
 getIntParam n =
+  tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
+
+getInt64Param :: ByteString -> EitherT String H Int64
+getInt64Param n =
   tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
 
 getDoubleParam :: ByteString -> EitherT String H Double

@@ -178,14 +178,14 @@
 
   {{#each sets}}
   <div class="row">
-    <div class="col-md-6">Reps: {{reps}} &times; {{weight}}</div>
+    <div class="col-md-6">Set: {{reps}} &times; {{weight}}</div>
   </div>
   {{/each}}
 
   <div class="row">
     <form class="add-set form-inline col-md-4">
-      <input class="reps" type="number" placeholder="Reps.." />
-      <input class="weight" type="number" placeholder="Weight.." />
+      <input class="reps" type="number" name="reps" placeholder="Reps.." />
+      <input class="weight" type="number" name="weight"  placeholder="Weight.." />
       <button class="btn btn-default" type="submit">Add Set</button>
     </form>
   </div>

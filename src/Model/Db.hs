@@ -10,7 +10,10 @@ module Model.Db (
   , addNote
   , deleteNote
   , queryTodaysNotes
-  , queryTodaysWorkouts) where
+  , queryTodaysWorkouts
+  , queryExercise
+  , queryWorkoutExerciseSets
+  , addExerciseSet) where
 
 import           Control.Applicative
 import           Control.Monad
@@ -181,14 +184,25 @@ queryOptionDouble conn (User uid _) optionName = do
 ----------------------------------------------------------------------
 -- Query functions for workouts
 
+queryExercise :: Connection -> RowId -> IO Exercise
+queryExercise conn rowId = do
+  [e] <- query conn "SELECT id,name FROM exercises WHERE id = ? LIMIT 1" (Only . unRowId $ rowId)
+  return e
+
 queryExercises :: Connection -> IO [Exercise]
 queryExercises conn = do
   query_ conn "SELECT id,name FROM exercises"
 
-querySets :: Connection -> User -> RowId -> IO [SetRow]
-querySets conn (User uid _) wrkId = do
-  query conn "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets WHERE user_id = ? AND workout_id = ? ORDER BY id"
-    (uid, unRowId wrkId)
+querySets :: Connection -> User -> RowId -> Maybe RowId -> IO [SetRow]
+querySets conn (User uid _) wrkId exerciseId_ = do
+  query conn
+    (Query $
+      T.concat [ "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets "
+                , " WHERE (user_id = ?) AND (workout_id = ?) AND "
+                , if isNothing exerciseId_ then "?" else "(exercise_id = ?)"
+                , " ORDER BY id"
+                ])
+      (uid, unRowId wrkId, fromMaybe 1 (unRowId <$> exerciseId_))
 
 setRowsToSets :: [SetRow] -> [ExerciseSet]
 setRowsToSets =
@@ -209,9 +223,9 @@ queryTodaysWorkouts conn user@(User uid _) today = do
         -- explicit "UI insert order id" in the database schema so we
         -- do a bit of gymnastics here to extract the same ordering
         -- based on row ids.
-        sets <- querySets conn user (workoutId w)
+        sets <- querySets conn user (workoutId w) Nothing
         let exerciseOrder =
-              foldr (\e acc -> if srExerciseId e `notElem` acc then srExerciseId e : acc else acc) [] sets
+              foldl (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
         let sets' =
               map (\exerciseId_ ->
                     let ex = exercises M.! exerciseId_ in
@@ -220,3 +234,12 @@ queryTodaysWorkouts conn user@(User uid _) today = do
         return $ w { workoutSets = sets' }
       )
     ws
+
+queryWorkoutExerciseSets :: Connection -> User -> RowId -> RowId -> IO [ExerciseSet]
+queryWorkoutExerciseSets conn user workoutId_ exerciseId_ = do
+  querySets conn user workoutId_ (Just exerciseId_) >>= return . setRowsToSets
+
+addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ()
+addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
+  execute conn "INSERT INTO sets (user_id,workout_id,exercise_id,reps,weight) VALUES (?,?,?,?,?)"
+    (uid, unRowId workoutId_, unRowId exerciseId_, reps, weight)

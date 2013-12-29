@@ -15,6 +15,7 @@ module Site.REST
   , restDeleteNote
   , restListNotes
   , restListWorkouts
+  , restAddExerciseSet
   ) where
 
 ------------------------------------------------------------------------------
@@ -88,17 +89,22 @@ instance ToJSON Note where
 instance ToJSON RowId where
   toJSON (RowId i) = Number (I (fromIntegral i))
 
+-- Temp data type for JSON schema tweaking
+data ExerciseSets = ExerciseSets Exercise [ExerciseSet]
+
+instance ToJSON ExerciseSets where
+  toJSON (ExerciseSets e es) =
+    object [ "name"       .= exerciseName e
+           , "exerciseId" .= exerciseId e
+           , "sets"       .= es
+           ]
+
 instance ToJSON Workout where
   toJSON (Workout i t c es) =
     object [ "id"        .= i
            , "time"      .= t
            , "comment"   .= c
-           , "exercises" .=
-                 map (\(e, ess) ->
-                       object [ "name"       .= exerciseName e
-                              , "exerciseId" .= exerciseId e
-                              , "sets"       .= ess
-                              ]) es
+           , "exercises" .= map (\(e,ess) -> ExerciseSets e ess) es
            ]
 
 instance ToJSON Exercise where
@@ -210,3 +216,17 @@ restListWorkouts = method GET (jsonResponse get)
     get user = do
       today <- liftIO $ getCurrentTime
       lift $ withDb $ \conn -> Model.queryTodaysWorkouts conn user today
+
+restAddExerciseSet :: H ()
+restAddExerciseSet = jsonResponse get
+  where
+    get user = do
+      workoutId_  <- fmap RowId $ getInt64Param "workoutId"
+      exerciseId_ <- fmap RowId $ getInt64Param $ "exerciseId"
+      reps        <- getIntParam "reps"
+      weight      <- getDoubleParam "weight"
+      lift $ withDb $ \conn -> do
+        Model.addExerciseSet conn user workoutId_ exerciseId_ reps weight
+        sets     <- Model.queryWorkoutExerciseSets conn user workoutId_ exerciseId_
+        exercise <- Model.queryExercise conn exerciseId_
+        return (ExerciseSets exercise sets)
