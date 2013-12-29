@@ -9,7 +9,8 @@ module Model.Db (
   , queryOptionDouble
   , addNote
   , deleteNote
-  , queryTodaysNotes) where
+  , queryTodaysNotes
+  , queryTodaysWorkouts) where
 
 import           Control.Applicative
 import           Control.Monad
@@ -21,8 +22,26 @@ import           Database.SQLite.Simple
 
 import           Model.Types
 
+data SetRow = SetRow {
+    _srId         :: RowId
+  , _srTimestamp  :: UTCTime
+  ,  srExerciseId :: RowId
+  , _srReps       :: Int
+  , _srWeight     :: Double
+  , _srComment    :: Maybe T.Text
+  }
+
 instance FromRow Note where
   fromRow = Note <$> field <*> field <*> field
+
+instance FromRow Workout where
+  fromRow = Workout <$> fmap RowId field <*> field <*> field <*> pure []
+
+instance FromRow Exercise where
+  fromRow = Exercise <$> fmap RowId field <*> field
+
+instance FromRow SetRow where
+  fromRow = SetRow <$> fmap RowId field <*> field <*> fmap RowId field <*> field <*> field <*> field
 
 tableExists :: Connection -> String -> IO Bool
 tableExists conn tblName = do
@@ -30,6 +49,42 @@ tableExists conn tblName = do
   case r of
     [Only (_ :: String)] -> return True
     _ -> return False
+
+schemaVersion :: Connection -> IO Int
+schemaVersion conn = do
+  [Only v] <- query_ conn "SELECT version FROM version"
+  return v
+
+setSchemaVersion :: Connection -> Int -> IO ()
+setSchemaVersion conn ver =
+  execute conn "UPDATE version SET version = ?" (Only ver)
+
+upgradeTo1 :: Connection -> IO ()
+upgradeTo1 conn = do
+  execute_ conn
+    (Query $
+     T.concat [ "CREATE TABLE workouts ("
+              , " id INTEGER PRIMARY KEY,"
+              , " timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,"
+              , " user_id INTEGER NOT NULL,"
+              , " comment TEXT)"])
+  execute_ conn
+    (Query $
+     T.concat [ "CREATE TABLE exercises ("
+              , " id INTEGER PRIMARY KEY,"
+              , " name TEXT,"
+              , " type TEXT)"])
+  execute_ conn
+    (Query $
+     T.concat [ "CREATE TABLE sets ("
+              , " id INTEGER PRIMARY KEY,"
+              , " timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,"
+              , " user_id INTEGER,"
+              , " workout_id INTEGER,"
+              , " exercise_id INTEGER,"
+              , " reps INTEGER,"
+              , " weight REAL,"
+              , " comment TEXT)"])
 
 -- | Create the necessary database tables, if not already initialized.
 createTables :: Connection -> IO ()
@@ -60,6 +115,18 @@ createTables conn = do
                 , "    user_id INTEGER,"
                 , "    weight FLOAT NOT NULL"
                 , ");"])
+  -- Upgrades
+  execute_ conn "BEGIN"
+  versionExists <- tableExists conn "version"
+  unless versionExists $ do
+    execute_ conn "CREATE TABLE version (version INTEGER)"
+    execute_ conn "INSERT INTO version (version) VALUES (0)"
+  let upgradeVersion n u = do
+        version <- schemaVersion conn
+        when (version == n) $ (u conn) >> setSchemaVersion conn (n + 1)
+  upgradeVersion 0 upgradeTo1
+  execute_ conn "COMMIT"
+
 
 setWeight :: Connection -> User -> UTCTime -> Maybe Double -> IO ()
 setWeight conn (User uid _) today weight =
@@ -110,3 +177,46 @@ queryOptionDouble :: Connection -> User -> T.Text -> IO (Maybe Double)
 queryOptionDouble conn (User uid _) optionName = do
   v <- query conn "SELECT option_value FROM user_options WHERE user_id = ? AND option_name = ? LIMIT 1" (uid, optionName)
   return . fmap (\(Only x) -> read x) . listToMaybe $ v
+
+----------------------------------------------------------------------
+-- Query functions for workouts
+
+queryExercises :: Connection -> IO [Exercise]
+queryExercises conn = do
+  query_ conn "SELECT id,name FROM exercises"
+
+querySets :: Connection -> User -> RowId -> IO [SetRow]
+querySets conn (User uid _) wrkId = do
+  query conn "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets WHERE user_id = ? AND workout_id = ? ORDER BY id"
+    (uid, unRowId wrkId)
+
+setRowsToSets :: [SetRow] -> [ExerciseSet]
+setRowsToSets =
+  map (\(SetRow i ts _eid reps weight comment) -> ExerciseSet i ts reps weight comment)
+
+queryTodaysWorkouts :: Connection -> User -> UTCTime -> IO [Workout]
+queryTodaysWorkouts conn user@(User uid _) today = do
+  exercises <- do
+    es <- queryExercises conn
+    return . M.fromList . map (\e@(Exercise i _n) -> (i, e)) $ es
+  ws <-
+    query conn
+      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (date(timestamp) = date(?))" (uid, today)
+      :: IO [Workout]
+  mapM
+    (\w -> do
+        -- Compute sort order for exercise groups.  We don't have an
+        -- explicit "UI insert order id" in the database schema so we
+        -- do a bit of gymnastics here to extract the same ordering
+        -- based on row ids.
+        sets <- querySets conn user (workoutId w)
+        let exerciseOrder =
+              foldr (\e acc -> if srExerciseId e `notElem` acc then srExerciseId e : acc else acc) [] sets
+        let sets' =
+              map (\exerciseId_ ->
+                    let ex = exercises M.! exerciseId_ in
+                    (ex, setRowsToSets . filter (\r -> srExerciseId r == exerciseId_) $ sets))
+                  exerciseOrder
+        return $ w { workoutSets = sets' }
+      )
+    ws

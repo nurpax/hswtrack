@@ -14,6 +14,7 @@ module Site.REST
   , restAddNote
   , restDeleteNote
   , restListNotes
+  , restListWorkouts
   ) where
 
 ------------------------------------------------------------------------------
@@ -21,7 +22,7 @@ import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
 import           Control.Monad.Trans.Either
 import           Data.Aeson
-import           Data.Attoparsec.Number (Number(D))
+import           Data.Attoparsec.Number (Number(D, I))
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
@@ -82,6 +83,37 @@ instance ToJSON Note where
     object [ "id"   .= i
            , "time" .= t
            , "text" .= n
+           ]
+
+instance ToJSON RowId where
+  toJSON (RowId i) = Number (I (fromIntegral i))
+
+instance ToJSON Workout where
+  toJSON (Workout i t c es) =
+    object [ "id"        .= i
+           , "time"      .= t
+           , "comment"   .= c
+           , "exercises" .=
+                 map (\(e, ess) ->
+                       object [ "name"       .= exerciseName e
+                              , "exerciseId" .= exerciseId e
+                              , "sets"       .= ess
+                              ]) es
+           ]
+
+instance ToJSON Exercise where
+  toJSON (Exercise i n) =
+    object [ "id"   .= i
+           , "name" .= n
+           ]
+
+instance ToJSON ExerciseSet where
+  toJSON (ExerciseSet i ts reps weight comment) =
+    object [ "id"      .= i
+           , "time"    .= ts
+           , "reps"    .= reps
+           , "weight"  .= weight
+           , "comment" .= comment
            ]
 
 restLoginError :: MonadSnap m => T.Text -> m ()
@@ -168,3 +200,13 @@ restListNotes = method GET (jsonResponse get)
     get user = do
       today <- liftIO $ getCurrentTime
       lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
+
+----------------------------------------------------------------------
+-- Workout related AJAX entry points
+
+restListWorkouts :: H ()
+restListWorkouts = method GET (jsonResponse get)
+  where
+    get user = do
+      today <- liftIO $ getCurrentTime
+      lift $ withDb $ \conn -> Model.queryTodaysWorkouts conn user today
