@@ -5,11 +5,13 @@ module Site.Util (
   , logFail
   , logRunEitherT
   , parseDouble
+  , parseInt64
   , tryGetParam
   , getDoubleParam
   , getDoubleParamOrEmpty
   , getIntParam
   , getInt64Param
+  , getInt64ParamOrEmpty
   , getTextParam
   , withDb
   , module Snap.Core
@@ -71,6 +73,9 @@ parseDouble :: T.Text -> EitherT String H Double
 parseDouble t =
   hoistEither (reader T.rational $ t)
 
+parseInt64 :: T.Text -> EitherT String H Int64
+parseInt64 t = hoistEither (reader T.decimal $ t)
+
 tryGetParam :: MonadSnap m => ByteString -> EitherT [Char] m ByteString
 tryGetParam p =
   lift (getParam p) >>= tryJust ("missing get param '"++ show p ++"'")
@@ -81,7 +86,12 @@ getIntParam n =
 
 getInt64Param :: ByteString -> EitherT String H Int64
 getInt64Param n =
-  tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
+  getTextParam n >>= \p -> parseInt64 p
+
+getInt64ParamOrEmpty :: ByteString -> EitherT String H (Maybe Int64)
+getInt64ParamOrEmpty n = do
+  v <- getTextParam n
+  if v == "" then return Nothing else parseInt64 v >>= return . Just
 
 getDoubleParam :: ByteString -> EitherT String H Double
 getDoubleParam n =

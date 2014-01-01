@@ -10,8 +10,11 @@ module Model.Db (
   , addNote
   , deleteNote
   , queryTodaysNotes
+  , queryWorkout
   , queryTodaysWorkouts
   , queryExercise
+  , queryExercises
+  , createWorkout
   , queryWorkoutExerciseSets
   , addExerciseSet) where
 
@@ -208,32 +211,50 @@ setRowsToSets :: [SetRow] -> [ExerciseSet]
 setRowsToSets =
   map (\(SetRow i ts _eid reps weight comment) -> ExerciseSet i ts reps weight comment)
 
+createWorkout :: Connection -> User -> UTCTime -> IO RowId
+createWorkout conn (User uid _) today = do
+  execute conn "INSERT INTO workouts (user_id,timestamp) VALUES (?,?)" (uid, today)
+  rowId <- lastInsertRowId conn
+  return . RowId $ rowId
+
+workoutExercises :: Connection  -> User -> M.Map RowId Exercise -> Workout -> IO Workout
+workoutExercises conn user exercises w = do
+  -- Compute sort order for exercise groups.  We don't have an
+  -- explicit "UI insert order id" in the database schema so we
+  -- do a bit of gymnastics here to extract the same ordering
+  -- based on row ids.
+  sets <- querySets conn user (workoutId w) Nothing
+  let exerciseOrder =
+        foldl (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
+  let sets' =
+        map (\exerciseId_ ->
+              let ex = exercises M.! exerciseId_ in
+              (ex, setRowsToSets . filter (\r -> srExerciseId r == exerciseId_) $ sets))
+          exerciseOrder
+  return $ w { workoutSets = sets' }
+
+listExercisesMap :: Connection -> IO (M.Map RowId Exercise)
+listExercisesMap conn = do
+  es <- queryExercises conn
+  return . M.fromList . map (\e@(Exercise i _n) -> (i, e)) $ es
+
+queryWorkout :: Connection -> User -> RowId -> IO Workout
+queryWorkout conn user@(User uid _) workoutId_ = do
+  [workout] <-
+    query conn
+      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (id = ?)" (uid, unRowId workoutId_)
+      :: IO [Workout]
+  exercises <- listExercisesMap conn
+  workoutExercises conn user exercises workout
+
 queryTodaysWorkouts :: Connection -> User -> UTCTime -> IO [Workout]
 queryTodaysWorkouts conn user@(User uid _) today = do
-  exercises <- do
-    es <- queryExercises conn
-    return . M.fromList . map (\e@(Exercise i _n) -> (i, e)) $ es
+  exercises <- listExercisesMap conn
   ws <-
     query conn
       "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (date(timestamp) = date(?))" (uid, today)
       :: IO [Workout]
-  mapM
-    (\w -> do
-        -- Compute sort order for exercise groups.  We don't have an
-        -- explicit "UI insert order id" in the database schema so we
-        -- do a bit of gymnastics here to extract the same ordering
-        -- based on row ids.
-        sets <- querySets conn user (workoutId w) Nothing
-        let exerciseOrder =
-              foldl (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
-        let sets' =
-              map (\exerciseId_ ->
-                    let ex = exercises M.! exerciseId_ in
-                    (ex, setRowsToSets . filter (\r -> srExerciseId r == exerciseId_) $ sets))
-                  exerciseOrder
-        return $ w { workoutSets = sets' }
-      )
-    ws
+  mapM (workoutExercises conn user exercises) ws
 
 queryWorkoutExerciseSets :: Connection -> User -> RowId -> RowId -> IO [ExerciseSet]
 queryWorkoutExerciseSets conn user workoutId_ exerciseId_ = do

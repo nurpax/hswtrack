@@ -14,7 +14,9 @@ module Site.REST
   , restAddNote
   , restDeleteNote
   , restListNotes
-  , restListWorkouts
+  , restListExerciseTypes
+  , restNewWorkout
+  , restQueryWorkouts
   , restAddExerciseSet
   ) where
 
@@ -26,6 +28,7 @@ import           Data.Aeson
 import           Data.Attoparsec.Number (Number(D, I))
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Data.Time
 import           Snap.Extras.JSON
@@ -210,12 +213,33 @@ restListNotes = method GET (jsonResponse get)
 ----------------------------------------------------------------------
 -- Workout related AJAX entry points
 
-restListWorkouts :: H ()
-restListWorkouts = method GET (jsonResponse get)
+restListExerciseTypes :: H ()
+restListExerciseTypes = jsonResponse get
   where
-    get user = do
+    get _user = do
+      lift $ withDb $ \conn -> Model.queryExercises conn
+
+restQueryWorkouts :: H ()
+restQueryWorkouts = do
+  wrkId <- getParam "id"
+  maybe (jsonResponse listWorkouts) (\i -> jsonResponse (oneWorkout i)) wrkId
+  where
+    oneWorkout id_ user = do
+      workoutId_ <- parseInt64 . T.decodeUtf8 $ id_
+      lift $ withDb $ \conn -> Model.queryWorkout conn user (RowId workoutId_)
+
+    listWorkouts user = do
       today <- liftIO $ getCurrentTime
       lift $ withDb $ \conn -> Model.queryTodaysWorkouts conn user today
+
+restNewWorkout :: H ()
+restNewWorkout = jsonResponse new
+  where
+    new user = do
+      today <- liftIO $ getCurrentTime
+      lift $ withDb $ \conn -> do
+        Model.createWorkout conn user today
+        Model.queryTodaysWorkouts conn user today
 
 restAddExerciseSet :: H ()
 restAddExerciseSet = jsonResponse get
