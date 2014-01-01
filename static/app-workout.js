@@ -1,5 +1,58 @@
 
-function Workout() {
+// Page for adding new exercise types
+function ExerciseTypes() {
+    this.exercises = [];
+    this.mainTemplate = Handlebars.compile($("#new-exercise-template").html());
+};
+
+ExerciseTypes.prototype.setExerciseList = function (lst) {
+    this.exercises = lst;
+};
+
+ExerciseTypes.prototype.list = function (lst) {
+    return this.exercises;
+};
+
+ExerciseTypes.prototype._loadExerciseTypes = function () {
+    return $.ajax({
+        type: "GET",
+        url: "/rest/exercise"
+    });
+};
+
+ExerciseTypes.prototype._renderExerciseList = function () {
+    var self = this;
+    $("#app-container").html(self.mainTemplate({ exercises: this.list() }));
+
+    $("form#new-exercise").each(function () {
+        var form = this;
+        $("button#new-workout", form).click(function (e) {
+            e.preventDefault();
+            var exerciseName = $("input#exercise-name", form).val();
+
+            $.ajax( { url: "/rest/exercise",
+                      type: "POST",
+                      data: { name: exerciseName },
+                      success: function (resp) {
+                          self.setExerciseList(resp);
+                          self._renderExerciseList();
+                      }
+                    });
+        });
+    });
+};
+
+ExerciseTypes.prototype.render = function () {
+    var self = this;
+
+    $.when(this._loadExerciseTypes()).done(function (es) {
+        self.setExerciseList(es);
+        self._renderExerciseList(es);
+    });
+};
+
+function Workout(exerciseTypes) {
+    this.exerciseTypes = exerciseTypes;
     this.mainTemplate = Handlebars.compile($("#workouts-template").html());
     this.workoutTemplate = Handlebars.compile($("#workout-template").html());
     this.exerciseTemplate = Handlebars.compile($("#exercise-template").html());
@@ -12,13 +65,6 @@ function Workout() {
 var assert = function(condition, message) {
     if (!condition)
         throw Error("Assert failed" + (typeof message !== "undefined" ? ": " + message : ""));
-};
-
-Workout.prototype._loadExerciseTypes = function () {
-    return $.ajax({
-        type: "GET",
-        url: "/rest/exercise"
-    });
 };
 
 Workout.prototype._loadWorkouts = function () {
@@ -78,11 +124,11 @@ Workout.prototype._renderWorkout = function (elt, workout) {
         self._renderExercise(this, workout.id, exercise);
     });
 
-    $("div.add-exercise", elt).html(self.addExerciseTemplate( {exerciseTypes: self.exerciseTypes} ));
+    $("div.add-exercise", elt).html(self.addExerciseTemplate( {exerciseTypes: self.exerciseTypes.list() } ));
     $("select.select-exercise", elt).click(function () {
         var selectedExerciseId = $(this).val();
         var addExerciseScope = $(".add-exercise-sets", elt);
-        addExerciseScope.html(self.addExerciseSetsTemplate( {exerciseTypes: self.exerciseTypes} ));
+        addExerciseScope.html(self.addExerciseSetsTemplate( {exerciseTypes: self.exerciseTypes.list() } ));
 
         var render = function (resp) {
             // Reload workout & rerender
@@ -123,8 +169,8 @@ Workout.prototype._renderWorkouts = function (ws) {
 Workout.prototype.render = function () {
     var self = this;
 
-    $.when(this._loadWorkouts(), this._loadExerciseTypes()).done(function (ws, es) {
-        self.exerciseTypes = es[0];
+    $.when(this._loadWorkouts(), this.exerciseTypes._loadExerciseTypes()).done(function (ws, es) {
+        self.exerciseTypes.setExerciseList(es[0]);
         self._renderWorkouts(ws[0]);
     });
 };

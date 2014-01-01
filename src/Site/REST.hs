@@ -15,6 +15,7 @@ module Site.REST
   , restDeleteNote
   , restListNotes
   , restListExerciseTypes
+  , restNewExerciseType
   , restNewWorkout
   , restQueryWorkouts
   , restAddExerciseSet
@@ -218,6 +219,18 @@ restListExerciseTypes = jsonResponse get
   where
     get _user = do
       lift $ withDb $ \conn -> Model.queryExercises conn
+
+
+-- TODO need to check for dupes by lower case name here, and return
+-- error if already exists
+restNewExerciseType :: H ()
+restNewExerciseType = jsonResponse put
+  where
+    put _user = do
+      name <- getTextParam "name"
+      lift $ withDb $ \conn -> do
+        Model.addExercise conn name
+        Model.queryExercises conn
 
 restQueryWorkouts :: H ()
 restQueryWorkouts = do

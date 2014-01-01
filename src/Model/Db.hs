@@ -14,6 +14,7 @@ module Model.Db (
   , queryTodaysWorkouts
   , queryExercise
   , queryExercises
+  , addExercise
   , createWorkout
   , queryWorkoutExerciseSets
   , addExerciseSet) where
@@ -194,7 +195,11 @@ queryExercise conn rowId = do
 
 queryExercises :: Connection -> IO [Exercise]
 queryExercises conn = do
-  query_ conn "SELECT id,name FROM exercises"
+  query_ conn "SELECT id,name FROM exercises ORDER BY lower(name)"
+
+addExercise :: Connection -> T.Text -> IO ()
+addExercise conn name = do
+  execute conn "INSERT INTO exercises (name) VALUES (?)" (Only name)
 
 querySets :: Connection -> User -> RowId -> Maybe RowId -> IO [SetRow]
 querySets conn (User uid _) wrkId exerciseId_ = do

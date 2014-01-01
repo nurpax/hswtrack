@@ -170,8 +170,29 @@
 </script>
 
 <!-- ------------------------------------------------------------------->
+
 <!-- Workout tracking -->
 
+<!-- Creating new types of exercises -->
+<script id="new-exercise-template" type="text/x-handlebars-template">
+  <div id="new-exercise">
+    <h4>Existing exercises:</h4>
+    <ul class="list-unstyled">
+      {{#each exercises}}
+      <li>{{name}}</li>
+      {{/each}}
+  </div>
+  <form id="new-exercise">
+    <label>Add a new exercise
+      <input id="exercise-name" type="text" name="name" placeholder="Exercise name.."/>
+    </label>
+    <button id="new-workout" class="btn btn-primary" type="submit">Add</button>
+  </form>
+  <br>
+  <a href="#/workout">Back to workouts..</a>
+</script>
+
+<!-- Main #/workout views -->
 <script id="add-set-control-partial" type="text/x-handlebars-template">
   <form class="add-set">
     <div class="row">
@@ -226,6 +247,10 @@
     </div>
 
     <div class="add-exercise-sets">
+    </div>
+
+    <div>
+      <label>Favorite exercise missing?</label> <a href="#/workout/add-exercise">Add it!</a>
     </div>
   </div>
 </script>

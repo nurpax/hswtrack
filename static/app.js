@@ -252,10 +252,13 @@ $(function () {
         checkLogin(jqXHR);
     }});
 
-    workout = new Workout();
+    var exerciseTypes = new ExerciseTypes();
+    workout = new Workout(exerciseTypes);
 
     router.add("/",         reloadHome);
     router.add("/workout",  function () { workout.render(); });
+    router.add("/workout/add-exercise",
+               function () { exerciseTypes.render(); });
     router.add("/settings", renderSettings);
     router.add("/login",    renderLogin);
     router.add("/new_user", renderNewUser);
