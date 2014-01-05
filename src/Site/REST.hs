@@ -99,7 +99,8 @@ data ExerciseSets = ExerciseSets Exercise [ExerciseSet]
 instance ToJSON ExerciseSets where
   toJSON (ExerciseSets e es) =
     object [ "name"       .= exerciseName e
-           , "exerciseId" .= exerciseId e
+           , "id"         .= exerciseId e
+           , "type"       .= (exerciseTypeToText . exerciseType $ e)
            , "sets"       .= es
            ]
 

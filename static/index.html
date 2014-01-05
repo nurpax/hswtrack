@@ -149,14 +149,16 @@
         </div>
         {{/if}}
 
-        <div class="row">
-          <button class="btn btn-primary col-md-12" type="submit">
-            {{#if loginForm}}
-            Login
-            {{else}}
-            Create a New User
-            {{/if}}
-          </button>
+        <div class="form-group row">
+          <div class="col-md-12">
+            <button class="btn btn-primary" type="submit">
+              {{#if loginForm}}
+              Login
+              {{else}}
+              Create a New User
+              {{/if}}
+            </button>
+          </div>
         </div>
 
       </form>
@@ -183,12 +185,39 @@
       {{/each}}
   </div>
 
-  <form id="new-exercise">
-    <label>Add a new exercise
-      <input id="exercise-name" type="text" name="name" placeholder="Exercise name.."/>
-    </label>
-    <button id="new-workout" class="btn btn-primary" type="submit">Add</button>
-  </form>
+  <div class="well">
+    <form id="new-exercise">
+      <div class="row">
+        <div class="col-md-4">
+          <label for="exercise-name">Add a new exercise</label>
+        </div>
+        <div class="col-md-8">
+          <input id="exercise-name" type="text" name="name" placeholder="Exercise name.."/>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+
+          <div class="radio">
+            <label>
+              <input type="radio" name="exercise-type-radios" id="exercise-type-w" value="W" checked/>
+              Weighted exercises like barbell bench.  Weight input always required.
+            </label>
+          </div>
+
+          <div class="radio">
+            <label>
+              <input type="radio" name="exercise-type-radios" id="exercise-type-bw" value="BW"/>
+              Bodyweight exercises like push-ups or pull-ups.  Extra weight can be input but is not required.
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button id="new-workout" class="btn btn-primary" type="submit">Add</button>
+    </form>
+  </div>
   <br>
   <a href="#/workout">Back to workouts..</a>
 </script>
@@ -201,7 +230,14 @@
         <input class="reps form-control" type="number" name="reps" placeholder="Reps.." />
       </div>
       <div class="col-xs-4">
+        {{#ifBodyweight this}}
+        <div class="collapse-group">
+          <input class="weight collapse form-control" type="number" name="weight"  placeholder="Weight.." />
+          <a id="collapse-weighted" class="btn" href="#">Advanced &raquo;</a>
+        </div>
+        {{else}}
         <input class="weight form-control" type="number" name="weight"  placeholder="Weight.." />
+        {{/ifBodyweight}}
       </div>
       <div class="col-xs-2">
         <button class="add-set btn btn-default" type="submit">Add Set</button>
@@ -215,12 +251,25 @@
 
   <table>
     {{#each sets}}
+    {{#ifBodyweight ../this}}
+    <tr>
+      <td>Set:</td>
+      <td class="text-right">{{reps}}</td>
+      <td>reps</td>
+      {{#if weight}}
+      <td>(+{{weight}} kg)</td>
+      {{else}}
+      <td></td>
+      {{/if}}
+    </tr>
+    {{else}}
     <tr>
       <td>Set:</td>
       <td class="text-right">{{reps}}</td>
       <td>&times;</td>
       <td>{{weight}} kg</td>
     </tr>
+    {{/ifBodyweight}}
     {{/each}}
   </table>
 
@@ -233,13 +282,14 @@
 
 <script id="add-exercise-template" type="text/x-handlebars-template">
   <div class="well">
-    <div class="row col-md-4">
-      <b>Add a New Exercise</b>
+    <div class="row">
+      <div class="col-md-4"><b>Add a New Exercise</b></div>
     </div>
 
     <div class="row">
       <div class="col-md-6">
         <select class="select-exercise form-group">
+          <option selected disabled hidden></option>
           {{#each exerciseTypes}}
           <option value="{{this.id}}">{{this.name}}</option>
           {{/each}}
@@ -251,7 +301,7 @@
     </div>
 
     <div>
-      <label>Favorite exercise missing?</label> <a href="#/workout/add-exercise">Add it!</a>
+      <label>Favorite exercise missing?</label>&nbsp;<a href="#/workout/add-exercise">Add it!</a>
     </div>
   </div>
 </script>
