@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
 
 module Model.Types (
     User(..)
@@ -7,7 +7,10 @@ module Model.Types (
   , Note(..)
   , Workout(..)
   , Exercise(..)
+  , ExerciseType(..)
   , ExerciseSet(..)
+  , exerciseTypeToText
+  , textToExerciseType
   ) where
 
 import           Data.Int
@@ -33,7 +36,12 @@ data Workout = Workout {
 data Exercise = Exercise {
     exerciseId   :: RowId
   , exerciseName :: T.Text
+  , exerciseType :: ExerciseType
   }
+
+data ExerciseType =
+    ETWeightOnly -- Exercise is never unweighted, e.g. barbell exercises
+  | ETBodyweight -- Exercise can be bodyweight or BW + extra
 
 data ExerciseSet = ExerciseSet {
     exSetId        :: RowId
@@ -42,3 +50,12 @@ data ExerciseSet = ExerciseSet {
   , exSetWeight    :: Double
   , exSetComment   :: Maybe T.Text
   }
+
+exerciseTypeToText :: ExerciseType -> T.Text
+exerciseTypeToText ETWeightOnly = "W"
+exerciseTypeToText ETBodyweight = "BW"
+
+textToExerciseType :: T.Text -> Either String ExerciseType
+textToExerciseType "W"  = Right ETWeightOnly
+textToExerciseType "BW" = Right ETBodyweight
+textToExerciseType s    = Left ("unknown exercise type input '" ++ T.unpack s ++ "'")

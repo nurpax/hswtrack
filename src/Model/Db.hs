@@ -26,6 +26,7 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import           Data.Time (Day, UTCTime)
 import           Database.SQLite.Simple
+import           Database.SQLite.Simple.ToField
 
 import           Model.Types
 
@@ -44,8 +45,15 @@ instance FromRow Note where
 instance FromRow Workout where
   fromRow = Workout <$> fmap RowId field <*> field <*> field <*> pure []
 
+instance ToField ExerciseType where
+  toField e = SQLText . exerciseTypeToText $ e
+
 instance FromRow Exercise where
-  fromRow = Exercise <$> fmap RowId field <*> field
+  fromRow =
+    Exercise <$> fmap RowId field <*> field <*> fmap (cvt . textToExerciseType) field
+    where
+      cvt (Left v)  = error v -- SQL table constraints should prevent this from happening
+      cvt (Right v) = v
 
 instance FromRow SetRow where
   fromRow = SetRow <$> fmap RowId field <*> field <*> fmap RowId field <*> field <*> field <*> field
@@ -80,7 +88,7 @@ upgradeTo1 conn = do
      T.concat [ "CREATE TABLE exercises ("
               , " id INTEGER PRIMARY KEY,"
               , " name TEXT,"
-              , " type TEXT)"])
+              , " type TEXT NOT NULL DEFAULT 'W' CHECK(type IN ('W', 'BW')))"])
   execute_ conn
     (Query $
      T.concat [ "CREATE TABLE sets ("
@@ -190,16 +198,16 @@ queryOptionDouble conn (User uid _) optionName = do
 
 queryExercise :: Connection -> RowId -> IO Exercise
 queryExercise conn rowId = do
-  [e] <- query conn "SELECT id,name FROM exercises WHERE id = ? LIMIT 1" (Only . unRowId $ rowId)
+  [e] <- query conn "SELECT id,name,type FROM exercises WHERE id = ? LIMIT 1" (Only . unRowId $ rowId)
   return e
 
 queryExercises :: Connection -> IO [Exercise]
 queryExercises conn = do
-  query_ conn "SELECT id,name FROM exercises ORDER BY lower(name)"
+  query_ conn "SELECT id,name,type FROM exercises ORDER BY lower(name)"
 
-addExercise :: Connection -> T.Text -> IO ()
-addExercise conn name = do
-  execute conn "INSERT INTO exercises (name) VALUES (?)" (Only name)
+addExercise :: Connection -> T.Text -> ExerciseType -> IO ()
+addExercise conn name ty = do
+  execute conn "INSERT INTO exercises (name,type) VALUES (?,?)" (name, ty)
 
 querySets :: Connection -> User -> RowId -> Maybe RowId -> IO [SetRow]
 querySets conn (User uid _) wrkId exerciseId_ = do
@@ -241,7 +249,7 @@ workoutExercises conn user exercises w = do
 listExercisesMap :: Connection -> IO (M.Map RowId Exercise)
 listExercisesMap conn = do
   es <- queryExercises conn
-  return . M.fromList . map (\e@(Exercise i _n) -> (i, e)) $ es
+  return . M.fromList . map (\e@(Exercise i _ _) -> (i, e)) $ es
 
 queryWorkout :: Connection -> User -> RowId -> IO Workout
 queryWorkout conn user@(User uid _) workoutId_ = do

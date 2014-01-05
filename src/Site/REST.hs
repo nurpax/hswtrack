@@ -112,9 +112,10 @@ instance ToJSON Workout where
            ]
 
 instance ToJSON Exercise where
-  toJSON (Exercise i n) =
+  toJSON (Exercise i n t) =
     object [ "id"   .= i
            , "name" .= n
+           , "type" .= exerciseTypeToText t
            ]
 
 instance ToJSON ExerciseSet where
@@ -228,8 +229,9 @@ restNewExerciseType = jsonResponse put
   where
     put _user = do
       name <- getTextParam "name"
+      ty   <- getTextParam "type" >>= hoistEither . textToExerciseType
       lift $ withDb $ \conn -> do
-        Model.addExercise conn name
+        Model.addExercise conn name ty
         Model.queryExercises conn
 
 restQueryWorkouts :: H ()
