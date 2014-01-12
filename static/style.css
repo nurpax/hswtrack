@@ -24,3 +24,16 @@ body {
   stroke: steelblue;
   stroke-width: 1.5px;
 }
+
+
+.bg_fade_in { /* start */
+    background-color: #afa;
+    -webkit-transition: background-color 0.35s linear;
+    -moz-transition: background-color 0.35s linear;
+    -o-transition: background-color 0.35s linear;
+    transition: background-color 0.35s linear;
+}
+
+.bg_fade_in.end {
+    background-color: #fff;
+}

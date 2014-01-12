@@ -251,8 +251,8 @@
 
   <table>
     {{#each sets}}
+    <tr class="{{flashSet this}}">
     {{#ifBodyweight ../this}}
-    <tr>
       <td>Set:</td>
       <td class="text-right">{{reps}}</td>
       <td>reps</td>
@@ -261,15 +261,13 @@
       {{else}}
       <td></td>
       {{/if}}
-    </tr>
     {{else}}
-    <tr>
       <td>Set:</td>
       <td class="text-right">{{reps}}</td>
       <td>&times;</td>
       <td>{{weight}} kg</td>
-    </tr>
     {{/ifBodyweight}}
+    </tr>
     {{/each}}
   </table>
 

@@ -61,6 +61,10 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
     };
 
     function Workout(exerciseTypes) {
+        var self = this;
+        // Mark to be "flashed in" if rendering an exercise set with this id
+        this.flashSetId = null;
+
         this.exerciseTypes = exerciseTypes;
         this.mainTemplate = Handlebars.compile($("#workouts-template").html());
         this.workoutTemplate = Handlebars.compile($("#workout-template").html());
@@ -75,6 +79,11 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
             }
             return options.inverse(this);
         });
+
+        Handlebars.registerHelper('flashSet', function(s, options) {
+            return s.id === self.flashSetId ? "bg_fade_in" : "";
+        });
+
     };
 
 
@@ -133,7 +142,11 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
                 $.ajax({ url: "/rest/workout/exercise",
                          type: "POST",
                          data: data,
-                         success: renderCallback
+                         success: function (resp) {
+                             var sets = resp.sets;
+                             self.flashSetId = sets[sets.length-1].id;
+                             renderCallback(resp);
+                         }
                        });
             });
         });
@@ -142,6 +155,11 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
     Workout.prototype._renderExercise = function (elt, workoutId, exercise) {
         var self = this;
         $(elt).html(self.exerciseTemplate(exercise));
+
+        // Highlight most recently added set
+        $(".bg_fade_in", elt).each(function () {
+            $(this).addClass("end");
+        });
 
         var render = function (resp) {
             self._renderExercise(elt, workoutId, resp);
