@@ -1,6 +1,6 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'app/workout'], function($, Handlebars, bootstrap, d3, workout) {
-//    var d3 = require('d3');
+define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout'],
+       function($, Handlebars, bootstrap, d3, router, workout) {
 
     function App() {
         this.selectedGraphDays = 3*30;
@@ -233,8 +233,8 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'app/workout'], function($, H
     {
         var self = this;
         // Load home & weights concurrently
-        $.when(self.loadAppContext(), 
-               self.loadWeights(self.selectedGraphDays), 
+        $.when(self.loadAppContext(),
+               self.loadWeights(self.selectedGraphDays),
                self.loadNotes()).done(
             function (resp, wresp, nresp) {
                 self.renderHome(resp[0], wresp[0], nresp[0]);

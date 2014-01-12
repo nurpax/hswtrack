@@ -5,6 +5,7 @@ requirejs.config({
         jquery: 'lib/jquery-2.0.3/jquery.min',
         bootstrap: 'lib/bootstrap-3.0.0/js/bootstrap.min',
         handlebars: 'lib/handlebars-1.0.0/handlebars',
+        router: 'lib/router'
     },
     shim: {
         handlebars: {
@@ -13,7 +14,10 @@ requirejs.config({
         d3: {
             exports: "d3"
         },
-        bootstrap: ['jquery']
+        bootstrap: ['jquery'],
+        router: {
+            exports: "router"
+        },
     }
 });
 
