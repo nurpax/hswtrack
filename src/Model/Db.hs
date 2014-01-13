@@ -17,7 +17,8 @@ module Model.Db (
   , addExercise
   , createWorkout
   , queryWorkoutExerciseSets
-  , addExerciseSet) where
+  , addExerciseSet
+  , deleteExerciseSet) where
 
 import           Control.Applicative
 import           Control.Monad
@@ -277,3 +278,7 @@ addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ()
 addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
   execute conn "INSERT INTO sets (user_id,workout_id,exercise_id,reps,weight) VALUES (?,?,?,?,?)"
     (uid, unRowId workoutId_, unRowId exerciseId_, reps, weight)
+
+deleteExerciseSet :: Connection -> User -> RowId -> IO ()
+deleteExerciseSet conn (User uid _) setId_ = do
+  execute conn "DELETE FROM sets WHERE user_id = ? AND id = ?" (uid, unRowId setId_)

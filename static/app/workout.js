@@ -156,7 +156,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         var self = this;
         $(elt).html(self.exerciseTemplate(exercise));
 
-        // Highlight most recently added set
+        // Highlight the most recently added set
         $(".bg_fade_in", elt).each(function () {
             $(this).addClass("end");
         });
@@ -164,8 +164,34 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         var render = function (resp) {
             self._renderExercise(elt, workoutId, resp);
         };
-
         this._attachAddExercise(elt, exercise, render, workoutId);
+
+        // Activate delete buttons
+        $("table tr", elt).each(function (idx) {
+            $("a.rm-set", this).each(function () {
+                $(this).click(function (e) {
+                    e.preventDefault();
+
+                    if (!confirm("OK to delete set?"))
+                        return;
+
+                    var data = {
+                        exerciseId: exercise.id,
+                        workoutId: workoutId,
+                        id: exercise.sets[idx].id
+                    };
+
+                    $.ajax({ url: "/rest/workout/exercise",
+                             type: "DELETE",
+                             data: data,
+                             success: function (resp) {
+                                 self._renderExercise(elt, workoutId, resp);
+                             }
+                           });
+                });
+            });
+        });
+
     };
 
     Workout.prototype._renderWorkout = function (elt, workout) {

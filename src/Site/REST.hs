@@ -19,6 +19,7 @@ module Site.REST
   , restNewWorkout
   , restQueryWorkouts
   , restAddExerciseSet
+  , restDeleteExerciseSet
   ) where
 
 ------------------------------------------------------------------------------
@@ -262,11 +263,24 @@ restAddExerciseSet = jsonResponse get
   where
     get user = do
       workoutId_  <- fmap RowId $ getInt64Param "workoutId"
-      exerciseId_ <- fmap RowId $ getInt64Param $ "exerciseId"
+      exerciseId_ <- fmap RowId $ getInt64Param "exerciseId"
       reps        <- getIntParam "reps"
       weight      <- getDoubleParam "weight"
       lift $ withDb $ \conn -> do
         Model.addExerciseSet conn user workoutId_ exerciseId_ reps weight
+        sets     <- Model.queryWorkoutExerciseSets conn user workoutId_ exerciseId_
+        exercise <- Model.queryExercise conn exerciseId_
+        return (ExerciseSets exercise sets)
+
+restDeleteExerciseSet :: H ()
+restDeleteExerciseSet = jsonResponse get
+  where
+    get user = do
+      workoutId_  <- fmap RowId $ getInt64Param "workoutId"
+      exerciseId_ <- fmap RowId $ getInt64Param "exerciseId"
+      setId_      <- fmap RowId $ getInt64Param "id"
+      lift $ withDb $ \conn -> do
+        Model.deleteExerciseSet conn user setId_
         sets     <- Model.queryWorkoutExerciseSets conn user workoutId_ exerciseId_
         exercise <- Model.queryExercise conn exerciseId_
         return (ExerciseSets exercise sets)

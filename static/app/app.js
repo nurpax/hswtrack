@@ -154,6 +154,10 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout'],
             $("a#rm-note", this).each(function (idx) {
                 $(this).click(function (e) {
                     e.preventDefault();
+
+                    if (!confirm("OK to delete note?"))
+                        return;
+
                     $.ajax({ url: "/rest/note",
                              type: "DELETE",
                              data: { id: notes[idx].id },
