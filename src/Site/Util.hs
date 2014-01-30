@@ -13,6 +13,7 @@ module Site.Util (
   , getInt64Param
   , getInt64ParamOrEmpty
   , getTextParam
+  , maybeGetTextParam
   , withDb
   , module Snap.Core
   , module Snap.Snaplet
@@ -105,3 +106,8 @@ getDoubleParamOrEmpty n = do
 getTextParam :: ByteString -> EitherT String H T.Text
 getTextParam n =
   tryGetParam n >>= \p -> return . T.decodeUtf8 $ p
+
+maybeGetTextParam :: ByteString -> EitherT String H (Maybe T.Text)
+maybeGetTextParam n = do
+  p <- lift $ getParam n
+  return $ fmap T.decodeUtf8 p

@@ -236,6 +236,17 @@ restNewExerciseType = jsonResponse put
         Model.addExercise conn name ty
         Model.queryExercises conn
 
+-- Get requested date either from GET params or return today's time if not specified.
+-- FIXME: at some point we need to decide how to deal with timezones here
+getToday :: EitherT String H UTCTime
+getToday = do
+  today <- maybeGetTextParam "date"
+  case today of
+    Just t  -> do
+      let t' = parseTime defaultTimeLocale "%Y-%m-%d" . T.unpack $ t
+      tryJust "invalid GET date format" t'
+    Nothing -> liftIO $ getCurrentTime
+
 restQueryWorkouts :: H ()
 restQueryWorkouts = do
   wrkId <- getParam "id"
@@ -246,14 +257,14 @@ restQueryWorkouts = do
       lift $ withDb $ \conn -> Model.queryWorkout conn user (RowId workoutId_)
 
     listWorkouts user = do
-      today <- liftIO $ getCurrentTime
+      today <- getToday
       lift $ withDb $ \conn -> Model.queryTodaysWorkouts conn user today
 
 restNewWorkout :: H ()
 restNewWorkout = jsonResponse new
   where
     new user = do
-      today <- liftIO $ getCurrentTime
+      today <- getToday
       lift $ withDb $ \conn -> do
         Model.createWorkout conn user today
         Model.queryTodaysWorkouts conn user today
