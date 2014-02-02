@@ -251,6 +251,8 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
     Workout.prototype.render = function () {
         var self = this;
 
+        this.flashSetId = null;
+
         $.when(this._loadWorkouts(), this.exerciseTypes._loadExerciseTypes()).done(function (ws, es) {
             self.exerciseTypes.setExerciseList(es[0]);
             self._renderWorkouts(ws[0]);
