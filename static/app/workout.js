@@ -73,13 +73,6 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         this.addExerciseSetsTemplate = Handlebars.compile($("#add-exercise-sets-template").html());
         Handlebars.registerPartial("addSetControl", $("#add-set-control-partial").html());
 
-        Handlebars.registerHelper('ifBodyweight', function(v, options) {
-            if(v.type === "BW") {
-                return options.fn(this);
-            }
-            return options.inverse(this);
-        });
-
         Handlebars.registerHelper('flashSet', function(s, options) {
             return s.id === self.flashSetId ? "bg_fade_in" : "";
         });

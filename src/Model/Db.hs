@@ -12,6 +12,7 @@ module Model.Db (
   , queryTodaysNotes
   , queryWorkout
   , queryTodaysWorkouts
+  , queryPastWorkouts
   , queryExercise
   , queryExercises
   , addExercise
@@ -282,3 +283,16 @@ addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
 deleteExerciseSet :: Connection -> User -> RowId -> IO ()
 deleteExerciseSet conn (User uid _) setId_ = do
   execute conn "DELETE FROM sets WHERE user_id = ? AND id = ?" (uid, unRowId setId_)
+
+-- Query N past workouts before or up to 'today'
+queryPastWorkouts :: Connection -> User -> UTCTime -> Int -> IO [Workout]
+queryPastWorkouts conn user@(User uid _) today limit = do
+  exercises <- listExercisesMap conn
+  ws <-
+    query conn
+      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?"
+      (uid, today, limit)
+      :: IO [Workout]
+  -- TODO this will issue a large # of SQL queries.  If that ever
+  -- becomes a problem, turn this into a join.
+  mapM (workoutExercises conn user exercises) ws

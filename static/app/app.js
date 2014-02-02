@@ -1,5 +1,5 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout'],
+define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app/history'],
        function($, Handlebars, bootstrap, d3, router, workout) {
 
     function App() {
@@ -252,9 +252,21 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout'],
         // is needed anyway.  By the same logic $ and Handlebars
         // should be required here too, no?
         var workout = require("app/workout");
+        var history = require("app/history");
 
         Handlebars.registerHelper('round', function(num, dec) {
             return new Handlebars.SafeString(num.toFixed(dec));
+        });
+
+        Handlebars.registerHelper('ifBodyweight', function(v, options) {
+            if(v.type === "BW") {
+                return options.fn(this);
+            }
+            return options.inverse(this);
+        });
+
+        Handlebars.registerHelper('dateString', function(v, options) {
+            return new Handlebars.SafeString((new Date(v)).toLocaleString());
         });
 
         // Compile templates
@@ -270,12 +282,14 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout'],
         }});
 
         var exerciseTypes = new workout.ExerciseTypes();
-        var workout = new workout.Workout(exerciseTypes);
+        var workout       = new workout.Workout(exerciseTypes);
+        var history       = new history.History();
 
         router.add("/",         function()  { self.reloadHome(); });
         router.add("/workout",  function () { workout.render(); });
         router.add("/workout/add-exercise",
                    function () { exerciseTypes.render(); });
+        router.add("/history",  function () { history.render(); });
         router.add("/settings", function()  { self.renderSettings(); });
         router.add("/login",    function()  { self.renderLogin(); });
         router.add("/new_user", function()  { self.renderNewUser(); });

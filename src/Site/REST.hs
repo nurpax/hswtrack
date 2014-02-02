@@ -20,6 +20,7 @@ module Site.REST
   , restQueryWorkouts
   , restAddExerciseSet
   , restDeleteExerciseSet
+  , restQueryWorkoutHistory
   ) where
 
 ------------------------------------------------------------------------------
@@ -295,3 +296,9 @@ restDeleteExerciseSet = jsonResponse get
         sets     <- Model.queryWorkoutExerciseSets conn user workoutId_ exerciseId_
         exercise <- Model.queryExercise conn exerciseId_
         return (ExerciseSets exercise sets)
+
+restQueryWorkoutHistory :: H ()
+restQueryWorkoutHistory = jsonResponse $ \user -> do
+  limit <- getIntParam "limit"
+  today <- getToday
+  lift $ withDb $ \conn -> Model.queryPastWorkouts conn user today limit
