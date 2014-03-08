@@ -28,7 +28,6 @@ import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
 import           Control.Monad.Trans.Either
 import           Data.Aeson
-import           Data.Attoparsec.Number (Number(D, I))
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -76,7 +75,7 @@ instance ToJSON LoggedInContext where
 
 instance ToJSON ConfigVal where
   toJSON (CVString txt) = String txt
-  toJSON (CVDouble flt) = Number (D flt)
+  toJSON (CVDouble flt) = Number (realToFrac flt)
 
 instance ToJSON WeightSample where
   toJSON (WeightSample d w) =
@@ -92,7 +91,7 @@ instance ToJSON Note where
            ]
 
 instance ToJSON RowId where
-  toJSON (RowId i) = Number (I (fromIntegral i))
+  toJSON (RowId i) = Number (fromIntegral i)
 
 -- Temp data type for JSON schema tweaking
 data ExerciseSets = ExerciseSets Exercise [ExerciseSet]

@@ -22,7 +22,7 @@ Executable hswtrack
     bytestring,
     containers,
     lens,
-    aeson,
+    aeson >= 0.7,
     attoparsec,
     mtl >= 2 && < 3,
     snap >= 0.13 && < 0.14,
