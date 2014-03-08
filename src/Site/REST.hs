@@ -34,7 +34,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Data.Time
-import           Snap.Extras.JSON
 import           System.Locale (defaultTimeLocale)
 ------------------------------------------------------------------------------
 import           Model

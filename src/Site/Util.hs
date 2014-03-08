@@ -15,6 +15,7 @@ module Site.Util (
   , getTextParam
   , maybeGetTextParam
   , withDb
+  , writeJSON
   , module Snap.Core
   , module Snap.Snaplet
   , module Snap.Snaplet.Auth
@@ -25,6 +26,7 @@ module Site.Util (
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
+import           Data.Aeson (ToJSON, encode)
 import           Data.ByteString (ByteString)
 import           Data.Int (Int64)
 import qualified Data.Text as T
@@ -32,7 +34,6 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
 import           Snap.Core
-import           Snap.Extras.CoreUtils
 import           Snap.Snaplet
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.SqliteSimple
@@ -41,6 +42,30 @@ import           Site.Application
 ------------------------------------------------------------------------------
 
 type H = Handler App App
+
+-- | Discard anything after this and return given status code to HTTP
+-- client immediately.
+finishEarly :: MonadSnap m => Int -> ByteString -> m b
+finishEarly code str = do
+  modifyResponse $ setResponseStatus code str
+  modifyResponse $ addHeader "Content-Type" "text/plain"
+  writeBS str
+  getResponse >>= finishWith
+
+-- | Finish early with error code 400
+badReq :: MonadSnap m => ByteString -> m b
+badReq = finishEarly 400
+
+-- | Mark response as 'application/json'
+jsonResponse :: MonadSnap m => m ()
+jsonResponse = modifyResponse $ setHeader "Content-Type" "application/json"
+
+-- | Set MIME to 'application/json' and write given object into
+-- 'Response' body.
+writeJSON :: (MonadSnap m, ToJSON a) => a -> m ()
+writeJSON a = do
+  jsonResponse
+  writeLBS . encode $ a
 
 -- | Run an IO action with an SQLite connection
 withDb :: (S.Connection -> IO a) -> H a
