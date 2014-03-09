@@ -281,8 +281,8 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             self.checkLogin(jqXHR);
         }});
 
-        var exerciseTypes = new workout.ExerciseTypes();
-        var workout       = new workout.WorkoutView(exerciseTypes);
+        var exerciseTypes = new workout.ExerciseTypeView();
+        var workout       = new workout.WorkoutView();
         var history       = new history.History();
 
         router.add("/",         function()  { self.reloadHome(); });
