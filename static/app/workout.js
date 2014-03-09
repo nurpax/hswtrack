@@ -60,7 +60,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         });
     };
 
-    function Workout(exerciseTypes) {
+    function WorkoutView(exerciseTypes) {
         var self = this;
         // Mark to be "flashed in" if rendering an exercise set with this id
         this.flashSetId = null;
@@ -85,14 +85,14 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
             throw Error("Assert failed" + (typeof message !== "undefined" ? ": " + message : ""));
     };
 
-    Workout.prototype._loadWorkouts = function () {
+    WorkoutView.prototype._loadWorkouts = function () {
         return $.ajax({
             type: "GET",
             url: "/rest/workout"
         });
     };
 
-    Workout.prototype._attachAddExercise = function (elt, exercise, renderCallback, workoutId) {
+    WorkoutView.prototype._attachAddExercise = function (elt, exercise, renderCallback, workoutId) {
         var self = this;
 
         $("form.add-set", elt).each(function () {
@@ -145,7 +145,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         });
     };
 
-    Workout.prototype._renderExercise = function (elt, workoutId, exercise) {
+    WorkoutView.prototype._renderExercise = function (elt, workoutId, exercise) {
         var self = this;
         $(elt).html(self.exerciseTemplate(exercise));
 
@@ -187,7 +187,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
 
     };
 
-    Workout.prototype._renderWorkout = function (elt, workout) {
+    WorkoutView.prototype._renderWorkout = function (elt, workout) {
         var self = this;
 
         $(elt).html(self.workoutTemplate(workout));
@@ -219,7 +219,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         });
     };
 
-    Workout.prototype._renderWorkouts = function (ws) {
+    WorkoutView.prototype._renderWorkouts = function (ws) {
         var self = this;
         var workouts = { workouts: ws };
 
@@ -241,7 +241,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         });
     };
 
-    Workout.prototype.render = function () {
+    WorkoutView.prototype.render = function () {
         var self = this;
 
         this.flashSetId = null;
@@ -254,7 +254,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
 
     // export
     return {
-        'Workout': Workout,
+        'WorkoutView': WorkoutView,
         'ExerciseTypes': ExerciseTypes,
     };
 });

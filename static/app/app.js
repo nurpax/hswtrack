@@ -282,7 +282,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
         }});
 
         var exerciseTypes = new workout.ExerciseTypes();
-        var workout       = new workout.Workout(exerciseTypes);
+        var workout       = new workout.WorkoutView(exerciseTypes);
         var history       = new history.History();
 
         router.add("/",         function()  { self.reloadHome(); });
