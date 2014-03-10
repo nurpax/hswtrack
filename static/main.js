@@ -1,5 +1,3 @@
-"use strict";
-
 requirejs.config({
     paths: {
         app: 'app',
@@ -34,6 +32,7 @@ requirejs.config({
 });
 
 require(['app/app'], function(app) {
-    var app = new app.App();
-    app.start(); // or whatever startup logic your app uses.
+    "use strict";
+    var application = new app.App();
+    application.start(); // or whatever startup logic your app uses.
 });

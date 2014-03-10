@@ -1,6 +1,6 @@
 
 define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app/history'],
-       function($, Handlebars, bootstrap, d3, router, workout) {
+       function($, Handlebars, bootstrap, d3, router, workout, history) {
     "use strict";
 
     function App() {
@@ -11,7 +11,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
         if (err.status == 403) {
             router.goto("/login");
         }
-    }
+    };
 
     App.prototype.renderPlot = function(app, weights) {
         var self = this;
@@ -50,7 +50,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        var pd = data.map(function (d) { return { date: parseDate(d.date), weight: d.weight } });
+        var pd = data.map(function (d) { return { date: parseDate(d.date), weight: d.weight }; });
         x.domain(d3.extent(pd, function(d) { return d.date; }));
 
         if (app.context.options.minGraphWeight)
@@ -77,7 +77,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             .datum(pd)
             .attr("class", "line")
             .attr("d", line);
-    }
+    };
 
     App.prototype.loadWeights = function(ndays) {
         return $.ajax({
@@ -85,7 +85,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             url: "/rest/weights",
             data: { days: ndays }
         });
-    }
+    };
 
     App.prototype.loadAppContext = function() {
         return $.ajax({
@@ -93,7 +93,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             url: "/rest/app",
             data: []
         });
-    }
+    };
 
     App.prototype.loadNotes = function() {
         return $.ajax({
@@ -101,16 +101,16 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             url: "/rest/notes",
             data: []
         });
-    }
+    };
 
-    App.prototype.renderLoginScreen = function(ctx, url) {
+    App.prototype.renderLoginScreen = function(context, url) {
         var self = this;
-        var ctx = ctx ? ctx : {};
+        var ctx = context ? context : {};
 
         if (url == "new_user")
-            ctx["loginForm"] = false;
+            ctx.loginForm = false;
         else if (url == "login")
-            ctx["loginForm"] = true;
+            ctx.loginForm = true;
 
         $("#app-container").html(self.templateLogin(ctx));
 
@@ -127,15 +127,15 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
                          }
                      }});
         });
-    }
+    };
 
     App.prototype.renderNewUser = function() {
         this.renderLoginScreen(null, "new_user");
-    }
+    };
 
     App.prototype.renderLogin = function() {
         this.renderLoginScreen(null, "login");
-    }
+    };
 
     App.prototype.renderSettings = function() {
         var self = this;
@@ -143,7 +143,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             function (app) {
                 $("#app-container").html(self.templateSettings(app.context));
             });
-    }
+    };
 
     App.prototype.renderComments = function(notes)
     {
@@ -180,7 +180,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
                      }
                    });
         });
-    }
+    };
 
     App.prototype.renderHome = function(appContext, weights, notes) {
         var self = this;
@@ -232,7 +232,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
                 success: function (r) { self.reloadHome(); }
             });
         });
-    }
+    };
 
     App.prototype.reloadHome = function()
     {
@@ -244,16 +244,10 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             function (resp, wresp, nresp) {
                 self.renderHome(resp[0], wresp[0], nresp[0]);
             });
-    }
+    };
 
     App.prototype.start = function () {
         var self = this;
-        // TODO I thought 'workout' would already be defined as it's
-        // on the 'define' line, but somehow this require() call here
-        // is needed anyway.  By the same logic $ and Handlebars
-        // should be required here too, no?
-        var workout = require("app/workout");
-        var history = require("app/history");
 
         Handlebars.registerHelper('round', function(num, dec) {
             return new Handlebars.SafeString(num.toFixed(dec));
@@ -282,15 +276,15 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
             self.checkLogin(jqXHR);
         }});
 
-        var exerciseTypes = new workout.ExerciseTypeView();
-        var workout       = new workout.WorkoutView();
-        var history       = new history.History();
+        var et = new workout.ExerciseTypeView();
+        var w  = new workout.WorkoutView();
+        var h  = new history.History();
 
         router.add("/",         function()  { self.reloadHome(); });
-        router.add("/workout",  function () { workout.render(); });
+        router.add("/workout",  function () { w.render(); });
         router.add("/workout/add-exercise",
-                   function () { exerciseTypes.render(); });
-        router.add("/history",  function () { history.render(); });
+                   function () { et.render(); });
+        router.add("/history",  function () { h.render(); });
         router.add("/settings", function()  { self.renderSettings(); });
         router.add("/login",    function()  { self.renderLogin(); });
         router.add("/new_user", function()  { self.renderNewUser(); });

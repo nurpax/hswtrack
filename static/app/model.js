@@ -6,20 +6,20 @@ define(['jquery', 'underscore'], function($, _) {
             type: "GET",
             url: "/rest/exercise"
         });
-    };
+    }
 
     function loadWorkouts() {
         return $.ajax({
             type: "GET",
             url: "/rest/workout"
         });
-    };
+    }
 
     /*--------------------------------------------------------------*/
     function ExerciseTypes(es) {
         this.exerciseTypes = es;
         this.onUpdate      = null;
-    };
+    }
 
     ExerciseTypes.prototype.update = function () {
         if (this.onUpdate) {
@@ -61,7 +61,7 @@ define(['jquery', 'underscore'], function($, _) {
         this.type     = e.type;
         this.sets     = e.sets ? e.sets : [];
         this.onUpdate = null;
-    };
+    }
 
     Exercise.prototype.addSetPrivate = function (params, cb) {
         var self = this;
@@ -77,7 +77,7 @@ define(['jquery', 'underscore'], function($, _) {
 
     Exercise.prototype.addSet = function (params) {
         var self = this;
-        this.addSetPrivate(params, function () { self.update() });
+        this.addSetPrivate(params, function () { self.update(); });
     };
 
     Exercise.prototype.deleteSet = function (params) {
@@ -106,7 +106,7 @@ define(['jquery', 'underscore'], function($, _) {
         this.id        = w.id;
         this.exercises = _.map(w.exercises, function (e) { return new Exercise(e); });
         this.onUpdate  = null;
-    };
+    }
 
     Workout.prototype.update = function () {
         if (this.onUpdate) {
@@ -116,7 +116,7 @@ define(['jquery', 'underscore'], function($, _) {
     };
 
     Workout.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
-    Workout.prototype.getExercises = function () { return this.exercises; }
+    Workout.prototype.getExercises = function () { return this.exercises; };
 
     Workout.prototype.addExerciseSet = function (exercise, data) {
         var self = this;
@@ -143,7 +143,7 @@ define(['jquery', 'underscore'], function($, _) {
         this.workouts      = [];
         this.exerciseTypes = [];
         this.onUpdate      = null;
-    };
+    }
 
     WorkoutCont.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
 
@@ -183,11 +183,11 @@ define(['jquery', 'underscore'], function($, _) {
 
     WorkoutCont.prototype.getWorkouts = function () { return this.workouts; };
 
-    WorkoutCont.prototype.getExerciseTypes = function () { return this.exerciseTypes.exerciseTypes; }
+    WorkoutCont.prototype.getExerciseTypes = function () { return this.exerciseTypes.exerciseTypes; };
 
     WorkoutCont.prototype.getExerciseById = function (id) {
         return this.exerciseTypes.getExerciseById(id);
-    }
+    };
 
     // export
     return {

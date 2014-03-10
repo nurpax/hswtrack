@@ -1,6 +1,5 @@
 define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
     "use strict";
-    var model = require("app/model");
 
     // Page for adding new exercise types
     function ExerciseTypeView() {
@@ -8,7 +7,7 @@ define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
         this.exercises = new model.ExerciseTypes();
         this.mainTemplate = Handlebars.compile($("#new-exercise-template").html());
         this.exercises.setUpdateHandler(function (c) { self.renderExerciseList(); });
-    };
+    }
 
     ExerciseTypeView.prototype.renderExerciseList = function () {
         var self = this;
@@ -41,7 +40,7 @@ define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
         Handlebars.registerPartial("addSetControl", $("#add-set-control-partial").html());
 
         this.model = new model.WorkoutCont();
-    };
+    }
 
 
     WorkoutView.prototype.attachAddExercise = function (elt, addSetCB, exercise, workoutId) {
@@ -118,7 +117,7 @@ define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
     WorkoutView.prototype.renderWorkout = function (workout, elt) {
         var self = this;
 
-        var c = { exercises: workout.getExercises() }
+        var c = { exercises: workout.getExercises() };
         $(elt).html(self.workoutTemplate(c));
 
         $(".exercise", elt).each(function (exerciseIdx) {

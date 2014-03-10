@@ -6,7 +6,7 @@ define(['jquery', 'handlebars'], function($, Handlebars) {
         var self = this;
         this.mainTemplate = Handlebars.compile($("#workout-history-main-template").html());
         Handlebars.registerPartial("renderExercises", $("#exercise-no-edit-template").html());
-    };
+    }
 
     History.prototype.loadPastWorkouts = function () {
         return $.ajax({
