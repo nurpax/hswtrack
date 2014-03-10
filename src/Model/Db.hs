@@ -234,7 +234,7 @@ createWorkout :: Connection -> User -> UTCTime -> IO Workout
 createWorkout conn (User uid _) today = do
   execute conn "INSERT INTO workouts (user_id,timestamp) VALUES (?,?)" (uid, today)
   rowId <- lastInsertRowId conn
-  [w] <- query conn "SELECT id,timestamp,comment FROM workouts WHERE id = ?" (Only rowId)
+  [w] <- query conn "SELECT id,timestamp,comment FROM workouts WHERE id = ? LIMIT 1" (Only rowId)
   return w
 
 workoutExercises :: Connection  -> User -> M.Map RowId Exercise -> Workout -> IO Workout
@@ -262,7 +262,8 @@ queryWorkout :: Connection -> User -> RowId -> IO Workout
 queryWorkout conn user@(User uid _) workoutId_ = do
   [workout] <-
     query conn
-      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (id = ?)" (uid, unRowId workoutId_)
+      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (id = ?) LIMIT 1"
+      (uid, unRowId workoutId_)
       :: IO [Workout]
   exercises <- listExercisesMap conn
   workoutExercises conn user exercises workout
@@ -285,7 +286,7 @@ addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
   execute conn "INSERT INTO sets (user_id,workout_id,exercise_id,reps,weight) VALUES (?,?,?,?,?)"
     (uid, unRowId workoutId_, unRowId exerciseId_, reps, weight)
   sid <- lastInsertRowId conn
-  [r] <- query conn "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets WHERE id = ?"
+  [r] <- query conn "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets WHERE id = ? LIMIT 1"
     (Only sid)
   return $ setRowToSet r
 
