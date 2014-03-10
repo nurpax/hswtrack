@@ -32,7 +32,7 @@ handleLoginSubmit :: H ()
 handleLoginSubmit =
   with auth $ loginUser "login" "password" (Just "remember")
     (\_ -> restLoginError "Incorrect login or password")
-    (withTop' id $ restAppContext)
+    (withTop' id restAppContext)
 
 -- | Logs out and redirects the user to the site index.
 handleLogout :: H ()
@@ -49,7 +49,7 @@ handleNewUser =
     login user = with auth (forceLogin user) >> restAppContext
 
     respondNewUserErr (err :: AuthFailure) =
-      restLoginError $ (T.pack . show $ err)
+      restLoginError (T.pack . show $ err)
 
 
 -- | The application's routes.

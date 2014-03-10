@@ -140,14 +140,13 @@ createTables conn = do
     execute_ conn "INSERT INTO version (version) VALUES (0)"
   let upgradeVersion n u = do
         version <- schemaVersion conn
-        when (version == n) $ (u conn) >> setSchemaVersion conn (n + 1)
+        when (version == n) $ u conn >> setSchemaVersion conn (n + 1)
   upgradeVersion 0 upgradeTo1
   execute_ conn "COMMIT"
 
 
 setWeight :: Connection -> User -> UTCTime -> Maybe Double -> IO ()
-setWeight conn (User uid _) today weight =
-  maybe del ins weight
+setWeight conn (User uid _) today = maybe del ins
   where
     del =
       execute conn "DELETE FROM weights WHERE user_id = ? AND date = date(?)" (uid, today)
@@ -204,7 +203,7 @@ queryExercise conn rowId = do
   return e
 
 queryExercises :: Connection -> IO [Exercise]
-queryExercises conn = do
+queryExercises conn =
   query_ conn "SELECT id,name,type FROM exercises ORDER BY lower(name)"
 
 addExercise :: Connection -> T.Text -> ExerciseType -> IO Exercise
@@ -214,7 +213,7 @@ addExercise conn name ty = do
   queryExercise conn (RowId eid)
 
 querySets :: Connection -> User -> RowId -> Maybe RowId -> IO [SetRow]
-querySets conn (User uid _) wrkId exerciseId_ = do
+querySets conn (User uid _) wrkId exerciseId_ =
   query conn
     (Query $
       T.concat [ "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets "
@@ -278,8 +277,8 @@ queryTodaysWorkouts conn user@(User uid _) today = do
   mapM (workoutExercises conn user exercises) ws
 
 queryWorkoutExerciseSets :: Connection -> User -> RowId -> RowId -> IO [ExerciseSet]
-queryWorkoutExerciseSets conn user workoutId_ exerciseId_ = do
-  querySets conn user workoutId_ (Just exerciseId_) >>= return . setRowsToSets
+queryWorkoutExerciseSets conn user workoutId_ exerciseId_ =
+  setRowsToSets <$> querySets conn user workoutId_ (Just exerciseId_)
 
 addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ExerciseSet
 addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
@@ -291,7 +290,7 @@ addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
   return $ setRowToSet r
 
 deleteExerciseSet :: Connection -> User -> RowId -> IO ()
-deleteExerciseSet conn (User uid _) setId_ = do
+deleteExerciseSet conn (User uid _) setId_ =
   execute conn "DELETE FROM sets WHERE user_id = ? AND id = ?" (uid, unRowId setId_)
 
 -- Query N past workouts before or up to 'today'

@@ -24,6 +24,7 @@ module Site.REST
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
 import           Control.Monad.Trans.Either
@@ -109,7 +110,7 @@ instance ToJSON Workout where
     object [ "id"        .= i
            , "time"      .= t
            , "comment"   .= c
-           , "exercises" .= map (\(e,ess) -> ExerciseSets e ess) es
+           , "exercises" .= map (uncurry ExerciseSets) es
            ]
 
 instance ToJSON Exercise where
@@ -137,7 +138,7 @@ requireLoggedInUser :: (Model.User -> EitherT String H (H ())) -> H ()
 requireLoggedInUser action =
   with auth currentUser >>= go
   where
-    go Nothing  = do
+    go Nothing  =
       modifyResponse $ setResponseStatus 403 "Login required"
 
     go (Just u) = logRunEitherT $ do
@@ -149,10 +150,21 @@ requireLoggedInUser action =
 jsonResponse :: ToJSON a => (Model.User -> EitherT String H a) -> H ()
 jsonResponse action = requireLoggedInUser respond
   where
-    respond user = (action user >>= return . writeJSON)
+    respond user = writeJSON <$> action user
 
 voidResponse :: (Model.User -> EitherT String H a) -> H ()
-voidResponse action = requireLoggedInUser (\u -> action u >> (return $ return ()))
+voidResponse action = requireLoggedInUser (\u -> action u >> return (return ()))
+
+-- Get requested date either from GET params or return today's time if not specified.
+-- FIXME: at some point we need to decide how to deal with timezones here
+getToday :: EitherT String H UTCTime
+getToday = do
+  today <- maybeGetTextParam "date"
+  case today of
+    Just t  -> do
+      let t' = parseTime defaultTimeLocale "%Y-%m-%d" . T.unpack $ t
+      tryJust "invalid GET date format" t'
+    Nothing -> liftIO getCurrentTime
 
 -- Every page render calls this handler to get an "app context".  This
 -- context struct contains things like is the user logged in, what's
@@ -162,7 +174,7 @@ restAppContext :: H ()
 restAppContext = jsonResponse get
   where
     get user@(Model.User _ login) = do
-      today <- liftIO $ getCurrentTime
+      today <- getToday
       (weight, options) <-
         lift $ withDb $ \conn -> do
           weight <- Model.queryTodaysWeight conn user today
@@ -175,7 +187,7 @@ restSetWeight =
   method POST (jsonResponse get)
   where
     get user = do
-      today  <- liftIO $ getCurrentTime
+      today  <- getToday
       weight <- getDoubleParamOrEmpty "weight"
       lift $ withDb $ \conn -> Model.setWeight conn user today weight
       return (1 :: Int)
@@ -184,16 +196,16 @@ restListWeights :: H ()
 restListWeights = method GET (jsonResponse get)
   where
     get user = do
-      today     <- liftIO $ getCurrentTime
+      today     <- getToday
       lastNDays <- getIntParam "days"
       weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
-      return . map (\(d,w) -> WeightSample d w) $ weights
+      return . map (uncurry WeightSample) $ weights
 
 restAddNote :: H ()
 restAddNote = jsonResponse get
   where
     get user = do
-      today    <- liftIO $ getCurrentTime
+      today    <- getToday
       noteText <- getTextParam "text"
       lift $ withDb $ \conn -> do
         Model.addNote conn user today noteText
@@ -203,7 +215,7 @@ restDeleteNote :: H ()
 restDeleteNote = jsonResponse get
   where
     get user = do
-      today  <- liftIO $ getCurrentTime
+      today  <- getToday
       noteId <- getIntParam "id"
       lift $ withDb $ \conn -> do
         Model.deleteNote conn user noteId
@@ -213,7 +225,7 @@ restListNotes :: H ()
 restListNotes = method GET (jsonResponse get)
   where
     get user = do
-      today <- liftIO $ getCurrentTime
+      today <- getToday
       lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
 
 ----------------------------------------------------------------------
@@ -222,7 +234,7 @@ restListNotes = method GET (jsonResponse get)
 restListExerciseTypes :: H ()
 restListExerciseTypes = jsonResponse get
   where
-    get _user = do
+    get _user =
       lift $ withDb $ \conn -> Model.queryExercises conn
 
 -- TODO need to check for dupes by lower case name here, and return
@@ -233,24 +245,13 @@ restNewExerciseType = jsonResponse put
     put _user = do
       name <- getTextParam "name"
       ty   <- getTextParam "type" >>= hoistEither . textToExerciseType
-      lift $ withDb $ \conn -> do
+      lift $ withDb $ \conn ->
         Model.addExercise conn name ty
-
--- Get requested date either from GET params or return today's time if not specified.
--- FIXME: at some point we need to decide how to deal with timezones here
-getToday :: EitherT String H UTCTime
-getToday = do
-  today <- maybeGetTextParam "date"
-  case today of
-    Just t  -> do
-      let t' = parseTime defaultTimeLocale "%Y-%m-%d" . T.unpack $ t
-      tryJust "invalid GET date format" t'
-    Nothing -> liftIO $ getCurrentTime
 
 restQueryWorkouts :: H ()
 restQueryWorkouts = do
   wrkId <- getParam "id"
-  maybe (jsonResponse listWorkouts) (\i -> jsonResponse (oneWorkout i)) wrkId
+  maybe (jsonResponse listWorkouts) (jsonResponse . oneWorkout) wrkId
   where
     oneWorkout id_ user = do
       workoutId_ <- parseInt64 . T.decodeUtf8 $ id_
@@ -271,8 +272,8 @@ restAddExerciseSet :: H ()
 restAddExerciseSet = jsonResponse get
   where
     get user = do
-      workoutId_  <- fmap RowId $ getInt64Param "workoutId"
-      exerciseId_ <- fmap RowId $ getInt64Param "exerciseId"
+      workoutId_  <- RowId <$> getInt64Param "workoutId"
+      exerciseId_ <- RowId <$> getInt64Param "exerciseId"
       reps        <- getIntParam "reps"
       weight      <- getDoubleParam "weight"
       lift $ withDb $ \conn ->
@@ -282,7 +283,7 @@ restDeleteExerciseSet :: H ()
 restDeleteExerciseSet = voidResponse get
   where
     get user = do
-      setId_      <- fmap RowId $ getInt64Param "id"
+      setId_ <- RowId <$> getInt64Param "id"
       lift $ withDb $ \conn ->
         Model.deleteExerciseSet conn user setId_
 

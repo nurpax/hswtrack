@@ -16,13 +16,11 @@ module Site.Util (
   , maybeGetTextParam
   , withDb
   , writeJSON
-  , module Snap.Core
-  , module Snap.Snaplet
-  , module Snap.Snaplet.Auth
-  , module Site.Application
+  , module X
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
@@ -33,12 +31,12 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
-import           Snap.Core
-import           Snap.Snaplet
-import           Snap.Snaplet.Auth
+import           Snap.Core as X
+import           Snap.Snaplet as X
+import           Snap.Snaplet.Auth as X
 import           Snap.Snaplet.SqliteSimple
 ------------------------------------------------------------------------------
-import           Site.Application
+import           Site.Application as X
 ------------------------------------------------------------------------------
 
 type H = Handler App App
@@ -97,12 +95,12 @@ logRunEitherT e = runEitherT e >>= logFail
 
 parseDouble :: T.Text -> EitherT String H Double
 parseDouble t =
-  hoistEither (reader T.rational $ t)
+  hoistEither (reader T.rational t)
 
 parseInt64 :: T.Text -> EitherT String H Int64
-parseInt64 t = hoistEither (reader T.decimal $ t)
+parseInt64 t = hoistEither (reader T.decimal t)
 
-tryGetParam :: MonadSnap m => ByteString -> EitherT [Char] m ByteString
+tryGetParam :: MonadSnap m => ByteString -> EitherT String m ByteString
 tryGetParam p =
   lift (getParam p) >>= tryJust ("missing get param '"++ show p ++"'")
 
@@ -117,7 +115,7 @@ getInt64Param n =
 getInt64ParamOrEmpty :: ByteString -> EitherT String H (Maybe Int64)
 getInt64ParamOrEmpty n = do
   v <- getTextParam n
-  if v == "" then return Nothing else parseInt64 v >>= return . Just
+  if v == "" then return Nothing else Just <$> parseInt64 v
 
 getDoubleParam :: ByteString -> EitherT String H Double
 getDoubleParam n =
@@ -126,7 +124,7 @@ getDoubleParam n =
 getDoubleParamOrEmpty :: ByteString -> EitherT String H (Maybe Double)
 getDoubleParamOrEmpty n = do
   v <- getTextParam n
-  if v == "" then return Nothing else parseDouble v >>= return . Just
+  if v == "" then return Nothing else Just <$> parseDouble v
 
 getTextParam :: ByteString -> EitherT String H T.Text
 getTextParam n =
