@@ -45,7 +45,8 @@ define(['jquery', 'underscore'], function($, _) {
                   type: "POST",
                   data: data,
                   success: function (resp) {
-                      self.exerciseTypes = resp;
+                      self.exerciseTypes.push(resp);
+                      self.exerciseTypes = _.sortBy(self.exerciseTypes, function (e) { return e.name; });
                       self.update();
                   }
                 });
@@ -56,7 +57,7 @@ define(['jquery', 'underscore'], function($, _) {
         this.id       = e.id;
         this.name     = e.name;
         this.type     = e.type;
-        this.sets     = e.sets;
+        this.sets     = e.sets ? e.sets : [];
         this.onUpdate = null;
     };
 
@@ -66,7 +67,7 @@ define(['jquery', 'underscore'], function($, _) {
                  type: "POST",
                  data: params,
                  success: function (resp) {
-                     self.sets = resp.sets;
+                     self.sets.push(resp);
                      cb();
                  }
                });
@@ -82,8 +83,8 @@ define(['jquery', 'underscore'], function($, _) {
         $.ajax({ url: "/rest/workout/exercise",
                  type: "DELETE",
                  data: params,
-                 success: function (resp) {
-                     self.sets = resp.sets;
+                 success: function () {
+                     self.sets = _.filter(self.sets, function (s) { return s.id != params.id; });
                      self.update();
                  }
                });
@@ -170,7 +171,8 @@ define(['jquery', 'underscore'], function($, _) {
                   type: "POST",
                   data: [],
                   success: function (resp) {
-                      self.setWorkouts(resp);
+                      var w = new Workout(resp);
+                      self.workouts.push(w);
                       self.update();
                   }
                 });

@@ -207,9 +207,11 @@ queryExercises :: Connection -> IO [Exercise]
 queryExercises conn = do
   query_ conn "SELECT id,name,type FROM exercises ORDER BY lower(name)"
 
-addExercise :: Connection -> T.Text -> ExerciseType -> IO ()
+addExercise :: Connection -> T.Text -> ExerciseType -> IO Exercise
 addExercise conn name ty = do
   execute conn "INSERT INTO exercises (name,type) VALUES (?,?)" (name, ty)
+  eid <- lastInsertRowId conn
+  queryExercise conn (RowId eid)
 
 querySets :: Connection -> User -> RowId -> Maybe RowId -> IO [SetRow]
 querySets conn (User uid _) wrkId exerciseId_ = do
@@ -222,15 +224,18 @@ querySets conn (User uid _) wrkId exerciseId_ = do
                 ])
       (uid, unRowId wrkId, fromMaybe 1 (unRowId <$> exerciseId_))
 
-setRowsToSets :: [SetRow] -> [ExerciseSet]
-setRowsToSets =
-  map (\(SetRow i ts _eid reps weight comment) -> ExerciseSet i ts reps weight comment)
+setRowToSet :: SetRow -> ExerciseSet
+setRowToSet (SetRow i ts _eid reps weight comment) = ExerciseSet i ts reps weight comment
 
-createWorkout :: Connection -> User -> UTCTime -> IO RowId
+setRowsToSets :: [SetRow] -> [ExerciseSet]
+setRowsToSets  = map setRowToSet
+
+createWorkout :: Connection -> User -> UTCTime -> IO Workout
 createWorkout conn (User uid _) today = do
   execute conn "INSERT INTO workouts (user_id,timestamp) VALUES (?,?)" (uid, today)
   rowId <- lastInsertRowId conn
-  return . RowId $ rowId
+  [w] <- query conn "SELECT id,timestamp,comment FROM workouts WHERE id = ?" (Only rowId)
+  return w
 
 workoutExercises :: Connection  -> User -> M.Map RowId Exercise -> Workout -> IO Workout
 workoutExercises conn user exercises w = do
@@ -275,10 +280,14 @@ queryWorkoutExerciseSets :: Connection -> User -> RowId -> RowId -> IO [Exercise
 queryWorkoutExerciseSets conn user workoutId_ exerciseId_ = do
   querySets conn user workoutId_ (Just exerciseId_) >>= return . setRowsToSets
 
-addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ()
+addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ExerciseSet
 addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
   execute conn "INSERT INTO sets (user_id,workout_id,exercise_id,reps,weight) VALUES (?,?,?,?,?)"
     (uid, unRowId workoutId_, unRowId exerciseId_, reps, weight)
+  sid <- lastInsertRowId conn
+  [r] <- query conn "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets WHERE id = ?"
+    (Only sid)
+  return $ setRowToSet r
 
 deleteExerciseSet :: Connection -> User -> RowId -> IO ()
 deleteExerciseSet conn (User uid _) setId_ = do

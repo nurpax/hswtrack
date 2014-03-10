@@ -107,12 +107,7 @@ define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
                     if (!confirm("OK to delete set?"))
                         return;
 
-                    var data = {
-                        exerciseId: exercise.id,
-                        workoutId: workoutId,
-                        id: exercise.sets[idx].id
-                    };
-
+                    var data = { id: exercise.sets[idx].id };
                     exercise.deleteSet(data);
                 });
             });

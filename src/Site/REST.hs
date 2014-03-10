@@ -151,6 +151,9 @@ jsonResponse action = requireLoggedInUser respond
   where
     respond user = (action user >>= return . writeJSON)
 
+voidResponse :: (Model.User -> EitherT String H a) -> H ()
+voidResponse action = requireLoggedInUser (\u -> action u >> (return $ return ()))
+
 -- Every page render calls this handler to get an "app context".  This
 -- context struct contains things like is the user logged in, what's
 -- his name, etc.  This is used on client-side to implement login
@@ -222,7 +225,6 @@ restListExerciseTypes = jsonResponse get
     get _user = do
       lift $ withDb $ \conn -> Model.queryExercises conn
 
-
 -- TODO need to check for dupes by lower case name here, and return
 -- error if already exists
 restNewExerciseType :: H ()
@@ -233,7 +235,6 @@ restNewExerciseType = jsonResponse put
       ty   <- getTextParam "type" >>= hoistEither . textToExerciseType
       lift $ withDb $ \conn -> do
         Model.addExercise conn name ty
-        Model.queryExercises conn
 
 -- Get requested date either from GET params or return today's time if not specified.
 -- FIXME: at some point we need to decide how to deal with timezones here
@@ -264,9 +265,7 @@ restNewWorkout = jsonResponse new
   where
     new user = do
       today <- getToday
-      lift $ withDb $ \conn -> do
-        Model.createWorkout conn user today
-        Model.queryTodaysWorkouts conn user today
+      lift $ withDb $ \conn -> Model.createWorkout conn user today
 
 restAddExerciseSet :: H ()
 restAddExerciseSet = jsonResponse get
@@ -276,24 +275,16 @@ restAddExerciseSet = jsonResponse get
       exerciseId_ <- fmap RowId $ getInt64Param "exerciseId"
       reps        <- getIntParam "reps"
       weight      <- getDoubleParam "weight"
-      lift $ withDb $ \conn -> do
+      lift $ withDb $ \conn ->
         Model.addExerciseSet conn user workoutId_ exerciseId_ reps weight
-        sets     <- Model.queryWorkoutExerciseSets conn user workoutId_ exerciseId_
-        exercise <- Model.queryExercise conn exerciseId_
-        return (ExerciseSets exercise sets)
 
 restDeleteExerciseSet :: H ()
-restDeleteExerciseSet = jsonResponse get
+restDeleteExerciseSet = voidResponse get
   where
     get user = do
-      workoutId_  <- fmap RowId $ getInt64Param "workoutId"
-      exerciseId_ <- fmap RowId $ getInt64Param "exerciseId"
       setId_      <- fmap RowId $ getInt64Param "id"
-      lift $ withDb $ \conn -> do
+      lift $ withDb $ \conn ->
         Model.deleteExerciseSet conn user setId_
-        sets     <- Model.queryWorkoutExerciseSets conn user workoutId_ exerciseId_
-        exercise <- Model.queryExercise conn exerciseId_
-        return (ExerciseSets exercise sets)
 
 restQueryWorkoutHistory :: H ()
 restQueryWorkoutHistory = jsonResponse $ \user -> do
