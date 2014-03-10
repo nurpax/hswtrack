@@ -1,3 +1,5 @@
+"use strict";
+
 requirejs.config({
     paths: {
         app: 'app',

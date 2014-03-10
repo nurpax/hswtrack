@@ -1,6 +1,7 @@
 
 define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app/history'],
        function($, Handlebars, bootstrap, d3, router, workout) {
+    "use strict";
 
     function App() {
         this.selectedGraphDays = 3*30;

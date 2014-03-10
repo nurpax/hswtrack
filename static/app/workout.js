@@ -1,4 +1,5 @@
 define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
+    "use strict";
     var model = require("app/model");
 
     // Page for adding new exercise types

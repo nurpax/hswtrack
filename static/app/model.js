@@ -1,4 +1,6 @@
 define(['jquery', 'underscore'], function($, _) {
+    "use strict";
+
     function loadExerciseTypes() {
         return $.ajax({
             type: "GET",

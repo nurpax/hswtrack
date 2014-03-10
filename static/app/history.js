@@ -1,4 +1,6 @@
 define(['jquery', 'handlebars'], function($, Handlebars) {
+    "use strict";
+
     // View workout history
     function History() {
         var self = this;
