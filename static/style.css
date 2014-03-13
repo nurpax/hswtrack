@@ -25,6 +25,9 @@ body {
   stroke-width: 1.5px;
 }
 
+.reps_total {
+  border-top:thin solid gray;
+}
 
 .bg_fade_in { /* start */
     background-color: #afa;

@@ -350,6 +350,9 @@
     {{/ifBodyweight}}
     </tr>
     {{/each}}
+    {{#ifBodyweight this}}
+    <tr class="reps_total"><td>Total:</td><td>{{totalReps}}</td><td></td></tr>
+    {{/ifBodyweight}}
   </table>
 </script>
 
