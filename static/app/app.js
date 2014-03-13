@@ -185,9 +185,8 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
     App.prototype.renderHome = function(appContext, weights, notes) {
         var self = this;
         var plot = function(days) {
-            selectedGraphDays = days;
-            wdfd = self.loadWeights(days);
-            $.when(wdfd).done(function (ws) {
+            self.selectedGraphDays = days;
+            $.when(self.loadWeights(days)).done(function (ws) {
                 self.renderPlot(appContext, ws);
             });
         };
