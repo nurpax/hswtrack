@@ -1,6 +1,6 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app/history'],
-       function($, Handlebars, bootstrap, d3, router, workout, history) {
+define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app/stats'],
+       function($, Handlebars, bootstrap, d3, router, workout, stats) {
     "use strict";
 
     function App() {
@@ -277,13 +277,13 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
 
         var et = new workout.ExerciseTypeView();
         var w  = new workout.WorkoutView();
-        var h  = new history.History();
+        var s  = new stats.Stats();
 
         router.add("/",         function()  { self.reloadHome(); });
         router.add("/workout",  function () { w.render(); });
         router.add("/workout/add-exercise",
                    function () { et.render(); });
-        router.add("/history",  function () { h.render(); });
+        router.add("/stats",    function () { s.render(); });
         router.add("/settings", function()  { self.renderSettings(); });
         router.add("/login",    function()  { self.renderLogin(); });
         router.add("/new_user", function()  { self.renderNewUser(); });

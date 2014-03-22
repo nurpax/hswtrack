@@ -1,14 +1,14 @@
 define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
     "use strict";
 
-    // View workout history
-    function History() {
+    // View workout stats/history
+    function Stats() {
         var self = this;
-        this.mainTemplate = Handlebars.compile($("#workout-history-main-template").html());
+        this.mainTemplate = Handlebars.compile($("#workout-stats-main-template").html());
         Handlebars.registerPartial("renderExercises", $("#exercise-no-edit-template").html());
     }
 
-    History.prototype.loadPastWorkouts = function () {
+    Stats.prototype.loadPastWorkouts = function () {
         return $.ajax({
             type: "GET",
             data: { limit: 14 },
@@ -16,7 +16,7 @@ define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
         });
     };
 
-    History.prototype.renderPastWorkouts = function (ws) {
+    Stats.prototype.renderPastWorkouts = function (ws) {
         var self = this;
         var workouts = { workouts: ws };
 
@@ -33,7 +33,7 @@ define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
         $("#app-container").html(self.mainTemplate(workouts));
     };
 
-    History.prototype.render = function () {
+    Stats.prototype.render = function () {
         var self = this;
 
         $.when(self.loadPastWorkouts()).done(function (ws, es) {
@@ -43,6 +43,6 @@ define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
 
     // export
     return {
-        'History': History
+        'Stats': Stats
     };
 });
