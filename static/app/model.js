@@ -48,7 +48,8 @@ define(['jquery', 'underscore'], function($, _) {
                   data: data,
                   success: function (resp) {
                       self.exerciseTypes.push(resp);
-                      self.exerciseTypes = _.sortBy(self.exerciseTypes, function (e) { return e.name; });
+                      self.exerciseTypes = _.sortBy(self.exerciseTypes,
+                                                    function (e) { return e.name.toLowerCase(); });
                       self.update();
                   }
                 });
