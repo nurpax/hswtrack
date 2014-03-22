@@ -16,18 +16,24 @@ define(['jquery', 'underscore'], function($, _) {
     }
 
     /*--------------------------------------------------------------*/
-    function ExerciseTypes(es) {
-        this.exerciseTypes = es;
-        this.onUpdate      = null;
+    function ModelBase() {
+        this.onUpdate = null;
     }
+    ModelBase.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
 
-    ExerciseTypes.prototype.update = function () {
+    ModelBase.prototype.update = function () {
         if (this.onUpdate) {
             this.onUpdate(this);
         }
     };
 
-    ExerciseTypes.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
+    /*--------------------------------------------------------------*/
+    function ExerciseTypes(es) {
+        ModelBase.apply(this, arguments);
+        this.exerciseTypes = es;
+    }
+
+    ExerciseTypes.prototype = Object.create(ModelBase.prototype);
 
     ExerciseTypes.prototype.load = function () {
         var self = this;
@@ -57,12 +63,15 @@ define(['jquery', 'underscore'], function($, _) {
 
     /*--------------------------------------------------------------*/
     function Exercise(e) {
+        ModelBase.apply(this, arguments);
+
         this.id       = e.id;
         this.name     = e.name;
         this.type     = e.type;
         this.sets     = e.sets ? e.sets : [];
-        this.onUpdate = null;
     }
+
+    Exercise.prototype = Object.create(ModelBase.prototype);
 
     Exercise.prototype.addSetPrivate = function (params, cb) {
         var self = this;
@@ -93,30 +102,22 @@ define(['jquery', 'underscore'], function($, _) {
                });
     };
 
-    Exercise.prototype.update = function () {
-        if (this.onUpdate) {
-            this.onUpdate(this);
-        }
-    };
-
-    Exercise.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
-
     /*--------------------------------------------------------------*/
     // Single workout, contains what exercises were done
     function Workout(w) {
+        ModelBase.apply(this, arguments);
+
         this.id        = w.id;
         this.exercises = _.map(w.exercises, function (e) { return new Exercise(e); });
-        this.onUpdate  = null;
     }
 
+    Workout.prototype = Object.create(ModelBase.prototype);
+
     Workout.prototype.update = function () {
-        if (this.onUpdate) {
-            this.onUpdate(this);
-        }
+        ModelBase.prototype.update.call(this, null);
         _.each(this.exercises, function (e) { e.update(); });
     };
 
-    Workout.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
     Workout.prototype.getExercises = function () { return this.exercises; };
 
     Workout.prototype.addExerciseSet = function (exercise, data) {
@@ -141,17 +142,15 @@ define(['jquery', 'underscore'], function($, _) {
     /*--------------------------------------------------------------*/
     // Top workout container, lists day's workout sessions
     function WorkoutCont() {
+        ModelBase.apply(this, arguments);
+
         this.workouts      = [];
         this.exerciseTypes = [];
-        this.onUpdate      = null;
     }
 
-    WorkoutCont.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
-
+    WorkoutCont.prototype = Object.create(ModelBase.prototype);
     WorkoutCont.prototype.update = function () {
-        if (this.onUpdate) {
-            this.onUpdate(this);
-        }
+        ModelBase.prototype.update.call(this, null);
         _.each(this.workouts, function (x) { x.update(); });
     };
 
