@@ -106,16 +106,14 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
 
         // Activate delete buttons
         $("table tr", elt).each(function (idx) {
-            $("a.rm-set", this).each(function () {
-                $(this).click(function (e) {
-                    e.preventDefault();
+            $("a.rm-set", this).click(function (e) {
+                e.preventDefault();
 
-                    if (!confirm("OK to delete set?"))
-                        return;
+                if (!confirm("OK to delete set?"))
+                    return;
 
-                    var data = { id: exercise.sets[idx].id };
-                    exercise.deleteSet(data);
-                });
+                var data = { id: exercise.sets[idx].id };
+                exercise.deleteSet(data);
             });
         });
     };
