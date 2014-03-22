@@ -1,33 +1,38 @@
-define(['jquery', 'handlebars', 'app/model'], function($, Handlebars, model) {
+define(['jquery', 'handlebars', 'app/model', 'app/class'], function($, Handlebars, model, obj) {
     "use strict";
 
+    var Class = obj.Class;
+
     // Page for adding new exercise types
-    function ExerciseTypeView() {
-        var self = this;
-        this.exercises = new model.ExerciseTypes();
-        this.mainTemplate = Handlebars.compile($("#new-exercise-template").html());
-        this.exercises.setUpdateHandler(function (c) { self.renderExerciseList(); });
-    }
+    var ExerciseTypeView = Class.extend({
+        init: function () {
+            var self = this;
+            this.exercises = new model.ExerciseTypes();
+            this.mainTemplate = Handlebars.compile($("#new-exercise-template").html());
+            this.exercises.setUpdateHandler(function (c) { self.renderExerciseList(); });
+        },
 
-    ExerciseTypeView.prototype.renderExerciseList = function () {
-        var self = this;
-        $("#app-container").html(self.mainTemplate({ exercises: self.exercises.exerciseTypes }));
+        renderExerciseList: function () {
+            var self = this;
+            $("#app-container").html(self.mainTemplate({ exercises: self.exercises.exerciseTypes }));
 
-        $("form#new-exercise").each(function () {
-            var form = this;
-            $("button#new-workout", form).click(function (e) {
-                e.preventDefault();
-                var exerciseName = $("input#exercise-name", form).val();
-                var type         = $("input[name=exercise-type-radios]:checked", form).val();
+            $("form#new-exercise").each(function () {
+                var form = this;
+                $("button#new-workout", form).click(function (e) {
+                    e.preventDefault();
+                    var exerciseName = $("input#exercise-name", form).val();
+                    var type         = $("input[name=exercise-type-radios]:checked", form).val();
 
-                self.exercises.addExercise({ name: exerciseName, type:type });
+                    self.exercises.addExercise({ name: exerciseName, type:type });
+                });
             });
-        });
-    };
+        },
 
-    ExerciseTypeView.prototype.render = function () {
-        this.exercises.load();
-    };
+        render: function () {
+            this.exercises.load();
+        }
+    });
+
 
     function WorkoutView() {
         var self = this;
