@@ -1,20 +1,21 @@
-define(['jquery', 'handlebars', 'app/model', 'app/class'], function($, Handlebars, model, obj) {
+define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars, model, view) {
     "use strict";
 
-    var Class = obj.Class;
+    var View = view.View;
 
     // Page for adding new exercise types
-    var ExerciseTypeView = Class.extend({
+    var ExerciseTypeView = View.extend({
         init: function () {
             var self = this;
+            this._super();
+            this.compileTemplates(['new-exercise-template']);
             this.exercises = new model.ExerciseTypes();
-            this.mainTemplate = Handlebars.compile($("#new-exercise-template").html());
             this.exercises.setUpdateHandler(function (c) { self.renderExerciseList(); });
         },
 
         renderExerciseList: function () {
             var self = this;
-            $("#app-container").html(self.mainTemplate({ exercises: self.exercises.exerciseTypes }));
+            $("#app-container").html(self.templates.newExercise({ exercises: self.exercises.exerciseTypes }));
 
             $("form#new-exercise").each(function () {
                 var form = this;
