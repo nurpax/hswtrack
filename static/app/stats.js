@@ -12,7 +12,7 @@ define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
         return $.ajax({
             type: "GET",
             data: { limit: 14 },
-            url: "/rest/history/workout"
+            url: "/rest/stats/workout"
         });
     };
 

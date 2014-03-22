@@ -66,7 +66,7 @@ routes = [ ("/rest/login",    handleLoginSubmit)
          , ("/rest/workout/exercise", method POST restAddExerciseSet <|> method DELETE restDeleteExerciseSet)
          , ("/rest/workout",  method POST restNewWorkout)
          , ("/rest/workout",  method GET restQueryWorkouts)
-         , ("/rest/history/workout",
+         , ("/rest/stats/workout",
                               method GET restQueryWorkoutHistory)
          , ("/",              serveFile "static/index.html")
          , ("/favicon.ico",   serveFile "static/favicon.ico")
