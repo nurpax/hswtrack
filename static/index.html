@@ -356,7 +356,7 @@
   </table>
 </script>
 
-<script id="workout-stats-main-template" type="text/x-handlebars-template">
+<script id="workout-stats-history-template" type="text/x-handlebars-template">
   <h2>Past 14 workouts</h2>
   <div id="workouts">
     {{#each workouts}}
@@ -367,6 +367,20 @@
     </div>
     {{/each}}
     {{/each}}
+  </div>
+</script>
+
+<script id="workout-stats-main-template" type="text/x-handlebars-template">
+  <div class="container">
+    <ul class="nav nav-tabs">
+      <li class="active"><a href="#history-tab" data-toggle="tab">History</a></li>
+      <li><a href="#pr-tab" data-toggle="tab">Personal Records</a></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane active" id="history-tab">
+      </div>
+      <div class="tab-pane" id="pr-tab">tab2</div>
+    </div>
   </div>
 </script>
 

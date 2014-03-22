@@ -5,6 +5,7 @@ define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
     function Stats() {
         var self = this;
         this.mainTemplate = Handlebars.compile($("#workout-stats-main-template").html());
+        this.historyTemplate = Handlebars.compile($("#workout-stats-history-template").html());
         Handlebars.registerPartial("renderExercises", $("#exercise-no-edit-template").html());
     }
 
@@ -31,6 +32,12 @@ define(['jquery', 'handlebars', 'underscore'], function($, Handlebars, _) {
                });
 
         $("#app-container").html(self.mainTemplate(workouts));
+        $("#history-tab").html(self.historyTemplate(workouts));
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr("href");
+            // target tab selected
+        });
     };
 
     Stats.prototype.render = function () {
