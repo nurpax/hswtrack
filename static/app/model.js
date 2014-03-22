@@ -1,5 +1,7 @@
-define(['jquery', 'underscore'], function($, _) {
+define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     "use strict";
+
+    var Class = obj.Class;
 
     function loadExerciseTypes() {
         return $.ajax({
@@ -16,178 +18,178 @@ define(['jquery', 'underscore'], function($, _) {
     }
 
     /*--------------------------------------------------------------*/
-    function ModelBase() {
-        this.onUpdate = null;
-    }
-    ModelBase.prototype.setUpdateHandler = function (cb) { this.onUpdate = cb; };
+    var ModelBase = Class.extend({
+        setUpdateHandler: function (cb) {
+            this.onUpdate = cb;
+        },
 
-    ModelBase.prototype.update = function () {
-        if (this.onUpdate) {
-            this.onUpdate(this);
+        update: function () {
+            if (this.onUpdate)
+                this.onUpdate(this);
         }
-    };
+
+    });
 
     /*--------------------------------------------------------------*/
-    function ExerciseTypes(es) {
-        ModelBase.apply(this, arguments);
-        this.exerciseTypes = es;
-    }
+    var ExerciseTypes = ModelBase.extend({
+        init: function(es) {
+            this.exerciseTypes = es;
+        },
 
-    ExerciseTypes.prototype = Object.create(ModelBase.prototype);
+        load: function() {
+            var self = this;
+            $.when(loadExerciseTypes()).done(function (es) {
+                self.exerciseTypes = es;
+                self.update();
+            });
+        },
 
-    ExerciseTypes.prototype.load = function () {
-        var self = this;
-        $.when(loadExerciseTypes()).done(function (es) {
-            self.exerciseTypes = es;
-            self.update();
-        });
-    };
+        getExerciseById: function (id) {
+            return  _.find(this.exerciseTypes, function (x) { return x.id == id; });
+        },
 
-    ExerciseTypes.prototype.getExerciseById = function (id) {
-        return  _.find(this.exerciseTypes, function (x) { return x.id == id; });
-    };
-
-    ExerciseTypes.prototype.addExercise = function (data) {
-        var self = this;
-        $.ajax( { url: "/rest/exercise",
-                  type: "POST",
-                  data: data,
-                  success: function (resp) {
-                      self.exerciseTypes.push(resp);
-                      self.exerciseTypes = _.sortBy(self.exerciseTypes,
-                                                    function (e) { return e.name.toLowerCase(); });
-                      self.update();
-                  }
-                });
-    };
+        addExercise: function (data) {
+            var self = this;
+            $.ajax( { url: "/rest/exercise",
+                      type: "POST",
+                      data: data,
+                      success: function (resp) {
+                          self.exerciseTypes.push(resp);
+                          self.exerciseTypes = _.sortBy(self.exerciseTypes,
+                                                        function (e) { return e.name.toLowerCase(); });
+                          self.update();
+                      }
+                    });
+        }
+    });
 
     /*--------------------------------------------------------------*/
-    function Exercise(e) {
-        ModelBase.apply(this, arguments);
+    var Exercise = ModelBase.extend({
 
-        this.id       = e.id;
-        this.name     = e.name;
-        this.type     = e.type;
-        this.sets     = e.sets ? e.sets : [];
-    }
+        init: function(e) {
+            this.id       = e.id;
+            this.name     = e.name;
+            this.type     = e.type;
+            this.sets     = e.sets ? e.sets : [];
+        },
 
-    Exercise.prototype = Object.create(ModelBase.prototype);
+        addSetPrivate: function (params, cb) {
+            var self = this;
+            $.ajax({ url: "/rest/workout/exercise",
+                     type: "POST",
+                     data: params,
+                     success: function (resp) {
+                         self.sets.push(resp);
+                         cb();
+                     }
+                   });
+        },
 
-    Exercise.prototype.addSetPrivate = function (params, cb) {
-        var self = this;
-        $.ajax({ url: "/rest/workout/exercise",
-                 type: "POST",
-                 data: params,
-                 success: function (resp) {
-                     self.sets.push(resp);
-                     cb();
-                 }
-               });
-    };
+        addSet: function (params) {
+            var self = this;
+            this.addSetPrivate(params, function () { self.update(); });
+        },
 
-    Exercise.prototype.addSet = function (params) {
-        var self = this;
-        this.addSetPrivate(params, function () { self.update(); });
-    };
+        deleteSet: function (params) {
+            var self = this;
+            $.ajax({ url: "/rest/workout/exercise",
+                     type: "DELETE",
+                     data: params,
+                     success: function () {
+                         self.sets = _.filter(self.sets, function (s) { return s.id != params.id; });
+                         self.update();
+                     }
+                   });
+        }
+    });
 
-    Exercise.prototype.deleteSet = function (params) {
-        var self = this;
-        $.ajax({ url: "/rest/workout/exercise",
-                 type: "DELETE",
-                 data: params,
-                 success: function () {
-                     self.sets = _.filter(self.sets, function (s) { return s.id != params.id; });
-                     self.update();
-                 }
-               });
-    };
+
 
     /*--------------------------------------------------------------*/
     // Single workout, contains what exercises were done
-    function Workout(w) {
-        ModelBase.apply(this, arguments);
+    var Workout = ModelBase.extend({
 
-        this.id        = w.id;
-        this.exercises = _.map(w.exercises, function (e) { return new Exercise(e); });
-    }
+        init: function(w) {
+            this.id        = w.id;
+            this.exercises = _.map(w.exercises, function (e) { return new Exercise(e); });
+        },
 
-    Workout.prototype = Object.create(ModelBase.prototype);
+        update: function () {
+            this._super();
+            _.each(this.exercises, function (e) { e.update(); });
+        },
 
-    Workout.prototype.update = function () {
-        ModelBase.prototype.update.call(this, null);
-        _.each(this.exercises, function (e) { e.update(); });
-    };
+        getExercises: function () { return this.exercises; },
 
-    Workout.prototype.getExercises = function () { return this.exercises; };
+        addExerciseSet: function (exercise, data) {
+            var self = this;
+            var e    = _.find(this.getExercises(), function (x) { return x.id == exercise.id; });
 
-    Workout.prototype.addExerciseSet = function (exercise, data) {
-        var self = this;
-        var e    = _.find(this.getExercises(), function (x) { return x.id == exercise.id; });
-
-        if (!e) {
-            e = new Exercise(exercise);
-            e.addSetPrivate(data,
-                            function () {
-                                self.exercises.push(e);
-                                self.update();
-                            });
-        } else {
-            e.addSetPrivate(data,
-                            function () {
-                                self.update();
-                            });
+            if (!e) {
+                e = new Exercise(exercise);
+                e.addSetPrivate(data,
+                                function () {
+                                    self.exercises.push(e);
+                                    self.update();
+                                });
+            } else {
+                e.addSetPrivate(data,
+                                function () {
+                                    self.update();
+                                });
+            }
         }
-    };
+    });
+
 
     /*--------------------------------------------------------------*/
     // Top workout container, lists day's workout sessions
-    function WorkoutCont() {
-        ModelBase.apply(this, arguments);
+    var WorkoutCont = ModelBase.extend({
+        init: function () {
+            this.workouts      = [];
+            this.exerciseTypes = [];
+        },
 
-        this.workouts      = [];
-        this.exerciseTypes = [];
-    }
+        update: function () {
+            this._super();
+            _.each(this.workouts, function (x) { x.update(); });
+        },
 
-    WorkoutCont.prototype = Object.create(ModelBase.prototype);
-    WorkoutCont.prototype.update = function () {
-        ModelBase.prototype.update.call(this, null);
-        _.each(this.workouts, function (x) { x.update(); });
-    };
+        setWorkouts: function (ws) {
+            this.workouts = _.map(ws, function (w) { return new Workout(w); });
+        },
 
-    WorkoutCont.prototype.setWorkouts = function (ws) {
-        this.workouts = _.map(ws, function (w) { return new Workout(w); });
-    };
+        load: function () {
+            var self = this;
+            $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
+                self.setWorkouts(ws[0]);
+                self.exerciseTypes = new ExerciseTypes(es[0]);
+                self.update();
+            });
+        },
 
-    WorkoutCont.prototype.load = function () {
-        var self = this;
-        $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
-            self.setWorkouts(ws[0]);
-            self.exerciseTypes = new ExerciseTypes(es[0]);
-            self.update();
-        });
-    };
+        newWorkout: function () {
+            var self = this;
+            $.ajax( { url: "/rest/workout",
+                      type: "POST",
+                      data: [],
+                      success: function (resp) {
+                          var w = new Workout(resp);
+                          self.workouts.push(w);
+                          self.update();
+                      }
+                    });
+        },
 
-    WorkoutCont.prototype.newWorkout = function () {
-        var self = this;
-        $.ajax( { url: "/rest/workout",
-                  type: "POST",
-                  data: [],
-                  success: function (resp) {
-                      var w = new Workout(resp);
-                      self.workouts.push(w);
-                      self.update();
-                  }
-                });
-    };
+        getWorkouts: function () { return this.workouts; },
 
+        getExerciseTypes: function () { return this.exerciseTypes.exerciseTypes; },
 
-    WorkoutCont.prototype.getWorkouts = function () { return this.workouts; };
+        getExerciseById: function (id) {
+            return this.exerciseTypes.getExerciseById(id);
+        }
 
-    WorkoutCont.prototype.getExerciseTypes = function () { return this.exerciseTypes.exerciseTypes; };
-
-    WorkoutCont.prototype.getExerciseById = function (id) {
-        return this.exerciseTypes.getExerciseById(id);
-    };
+    });
 
     // export
     return {
