@@ -35,141 +35,143 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
     });
 
 
-    function WorkoutView() {
-        var self = this;
+    var WorkoutView = View.extend({
 
-        this.mainTemplate = Handlebars.compile($("#workouts-template").html());
-        this.workoutTemplate = Handlebars.compile($("#workout-template").html());
-        this.exerciseTemplate = Handlebars.compile($("#exercise-template").html());
-        this.addExerciseTemplate = Handlebars.compile($("#add-exercise-template").html());
-        this.addExerciseSetsTemplate = Handlebars.compile($("#add-exercise-sets-template").html());
-        Handlebars.registerPartial("addSetControl", $("#add-set-control-partial").html());
-
-        this.model = new model.WorkoutCont();
-    }
-
-
-    WorkoutView.prototype.attachAddExercise = function (elt, addSetCB, exercise, workoutId) {
-        var self = this;
-
-        $("form.add-set", elt).each(function () {
-            var form = this;
-
-            $('a#collapse-weighted', form).click(function(e) {
-                e.preventDefault();
-                var c = $(this).closest('.collapse-group').find('.collapse');
-                c.collapse('toggle');
-                $(this).hide();
-            });
+        init: function () {
+            var self = this;
+            this._super();
+            this.mainTemplate = Handlebars.compile($("#workouts-template").html());
+            this.workoutTemplate = Handlebars.compile($("#workout-template").html());
+            this.exerciseTemplate = Handlebars.compile($("#exercise-template").html());
+            this.addExerciseTemplate = Handlebars.compile($("#add-exercise-template").html());
+            this.addExerciseSetsTemplate = Handlebars.compile($("#add-exercise-sets-template").html());
+            Handlebars.registerPartial("addSetControl", $("#add-set-control-partial").html());
+            this.model = new model.WorkoutCont();
+        },
 
 
-            $("button", this).click(function (e) {
-                e.preventDefault();
-                var reps   = $("input.reps", form).val();
-                var weight = $("input.weight", form).val();
+        attachAddExercise: function (elt, addSetCB, exercise, workoutId) {
+            var self = this;
 
-                if (reps === '' || reps === '0') {
-                    return;
-                }
+            $("form.add-set", elt).each(function () {
+                var form = this;
 
-                if (exercise.type == 'BW') {
-                    if (weight === '') {
-                        weight = 0;
-                    }
-                } else {
-                    if (weight === '') {
+                $('a#collapse-weighted', form).click(function(e) {
+                    e.preventDefault();
+                    var c = $(this).closest('.collapse-group').find('.collapse');
+                    c.collapse('toggle');
+                    $(this).hide();
+                });
+
+
+                $("button", this).click(function (e) {
+                    e.preventDefault();
+                    var reps   = $("input.reps", form).val();
+                    var weight = $("input.weight", form).val();
+
+                    if (reps === '' || reps === '0') {
                         return;
                     }
-                }
 
-                var data = {
-                    reps: reps,
-                    weight: weight,
-                    exerciseId: exercise.id,
-                    workoutId: workoutId
-                };
+                    if (exercise.type == 'BW') {
+                        if (weight === '') {
+                            weight = 0;
+                        }
+                    } else {
+                        if (weight === '') {
+                            return;
+                        }
+                    }
 
-                // attachAddExercise may either need to refresh just
-                // the current exercise sets list, or the whole
-                // workout where the set is being added.  This is why
-                // the set addition is parametrized, and we don't
-                // simply call exercise.addSet here.
-                addSetCB(data);
+                    var data = {
+                        reps: reps,
+                        weight: weight,
+                        exerciseId: exercise.id,
+                        workoutId: workoutId
+                    };
+
+                    // attachAddExercise may either need to refresh just
+                    // the current exercise sets list, or the whole
+                    // workout where the set is being added.  This is why
+                    // the set addition is parametrized, and we don't
+                    // simply call exercise.addSet here.
+                    addSetCB(data);
+                });
             });
-        });
-    };
+        },
 
-    WorkoutView.prototype.renderExercise = function (exercise, workoutId, elt) {
-        var self = this;
-        $(elt).html(self.exerciseTemplate(exercise));
-        this.attachAddExercise(elt, function (d) { exercise.addSet(d); }, exercise, workoutId);
+        renderExercise: function (exercise, workoutId, elt) {
+            var self = this;
+            $(elt).html(self.exerciseTemplate(exercise));
+            this.attachAddExercise(elt, function (d) { exercise.addSet(d); }, exercise, workoutId);
 
-        // Activate delete buttons
-        $("table tr", elt).each(function (idx) {
-            $("a.rm-set", this).click(function (e) {
-                e.preventDefault();
+            // Activate delete buttons
+            $("table tr", elt).each(function (idx) {
+                $("a.rm-set", this).click(function (e) {
+                    e.preventDefault();
 
-                if (!confirm("OK to delete set?"))
-                    return;
+                    if (!confirm("OK to delete set?"))
+                        return;
 
-                var data = { id: exercise.sets[idx].id };
-                exercise.deleteSet(data);
+                    var data = { id: exercise.sets[idx].id };
+                    exercise.deleteSet(data);
+                });
             });
-        });
-    };
+        },
 
-    WorkoutView.prototype.renderWorkout = function (workout, elt) {
-        var self = this;
+        renderWorkout: function (workout, elt) {
+            var self = this;
 
-        var c = { exercises: workout.getExercises() };
-        $(elt).html(self.workoutTemplate(c));
+            var c = { exercises: workout.getExercises() };
+            $(elt).html(self.workoutTemplate(c));
 
-        $(".exercise", elt).each(function (exerciseIdx) {
-            var exerciseElt = this;
-            var exercise    = c.exercises[exerciseIdx];
-            exercise.setUpdateHandler(function (e) { self.renderExercise(e, workout.id, exerciseElt); });
-        });
+            $(".exercise", elt).each(function (exerciseIdx) {
+                var exerciseElt = this;
+                var exercise    = c.exercises[exerciseIdx];
+                exercise.setUpdateHandler(function (e) { self.renderExercise(e, workout.id, exerciseElt); });
+            });
 
-        $("div.add-exercise", elt).html(self.addExerciseTemplate(
-            { exerciseTypes: self.model.getExerciseTypes() }
-        ));
+            $("div.add-exercise", elt).html(self.addExerciseTemplate(
+                { exerciseTypes: self.model.getExerciseTypes() }
+            ));
 
-        $("select.select-exercise", elt).change(function () {
-            var selectedExerciseId = $(this).val();
-            var addExerciseScope = $(".add-exercise-sets", elt);
-            var e = self.model.getExerciseById(selectedExerciseId);
-            addExerciseScope.html(self.addExerciseSetsTemplate(e));
+            $("select.select-exercise", elt).change(function () {
+                var selectedExerciseId = $(this).val();
+                var addExerciseScope = $(".add-exercise-sets", elt);
+                var e = self.model.getExerciseById(selectedExerciseId);
+                addExerciseScope.html(self.addExerciseSetsTemplate(e));
 
-            self.attachAddExercise(addExerciseScope,
-                                   function (d) { workout.addExerciseSet(e, d); },
-                                   e,
-                                   workout.id);
-        });
-    };
+                self.attachAddExercise(addExerciseScope,
+                                       function (d) { workout.addExerciseSet(e, d); },
+                                       e,
+                                       workout.id);
+            });
+        },
 
-    WorkoutView.prototype.renderWorkouts = function (workoutCont) {
-        var self = this;
-        var workouts = { workouts: workoutCont.getWorkouts() };
+        renderWorkouts: function (workoutCont) {
+            var self = this;
+            var workouts = { workouts: workoutCont.getWorkouts() };
 
-        $("#app-container").html(self.mainTemplate(workouts));
+            $("#app-container").html(self.mainTemplate(workouts));
 
-        $(".workout").each(function (workoutIdx) {
-            var workoutElt = this;
-            var workout    = workouts.workouts[workoutIdx];
-            workout.setUpdateHandler(function (w) { self.renderWorkout(w, workoutElt); });
-        });
+            $(".workout").each(function (workoutIdx) {
+                var workoutElt = this;
+                var workout    = workouts.workouts[workoutIdx];
+                workout.setUpdateHandler(function (w) { self.renderWorkout(w, workoutElt); });
+            });
 
-        $("button#new-workout").click(function (elt) {
-            workoutCont.newWorkout();
-        });
-    };
+            $("button#new-workout").click(function (elt) {
+                workoutCont.newWorkout();
+            });
+        },
 
-    WorkoutView.prototype.render = function () {
-        var self = this;
+        render: function () {
+            var self = this;
+            self.model.setUpdateHandler(function (c) { self.renderWorkouts(c); });
+            self.model.load();
+        }
 
-        self.model.setUpdateHandler(function (c) { self.renderWorkouts(c); });
-        self.model.load();
-    };
+    });
 
     // export
     return {
