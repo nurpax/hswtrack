@@ -277,7 +277,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/workout', 'app
 
         var et = new workout.ExerciseTypeView();
         var w  = new workout.WorkoutView();
-        var s  = new stats.Stats();
+        var s  = new stats.StatsView();
 
         router.add("/",         function()  { self.reloadHome(); });
         router.add("/workout",  function () { w.render(); });

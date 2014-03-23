@@ -59,7 +59,11 @@ define(['jquery', 'handlebars', 'app/class'], function($, Handlebars, obj) {
 
             _.each(tpls, function (tpl) {
                 var n = camelCasePartial(tpl);
-                h.registerPartial(n, $("#"+tpl).html());
+                var t = $("#"+tpl);
+                if (!t.length) {
+                    throw new Error("Can't find #" + tpl + " from the DOM");
+                }
+                h.registerPartial(n, t.html());
             });
         }
 

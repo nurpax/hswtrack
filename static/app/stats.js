@@ -1,14 +1,12 @@
-define(['jquery', 'handlebars', 'underscore', 'app/class'], function($, Handlebars, _, obj) {
+define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebars, _, view) {
     "use strict";
-    var Class = obj.Class;
 
     // View workout stats/history
-    var Stats = Class.extend({
+    var StatsView = view.View.extend({
         init: function () {
-            var self = this;
-            this.mainTemplate = Handlebars.compile($("#workout-stats-main-template").html());
-            this.historyTemplate = Handlebars.compile($("#workout-stats-history-template").html());
-            Handlebars.registerPartial("renderExercises", $("#exercise-no-edit-template").html());
+            this._super();
+            this.compileTemplates(['stats-main-template', 'stats-history-template']);
+            this.registerPartials(Handlebars, ['exercise-no-edit-partial']);
         },
 
         loadPastWorkouts: function () {
@@ -33,8 +31,8 @@ define(['jquery', 'handlebars', 'underscore', 'app/class'], function($, Handleba
                        });
                    });
 
-            $("#app-container").html(self.mainTemplate(workouts));
-            $("#history-tab").html(self.historyTemplate(workouts));
+            $("#app-container").html(self.templates.statsMain(workouts));
+            $("#history-tab").html(self.templates.statsHistory(workouts));
 
             $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
                 var target = $(e.target).attr("href");
@@ -53,6 +51,6 @@ define(['jquery', 'handlebars', 'underscore', 'app/class'], function($, Handleba
 
     // export
     return {
-        'Stats': Stats
+        'StatsView': StatsView
     };
 });
