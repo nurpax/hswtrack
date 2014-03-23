@@ -1,20 +1,20 @@
 define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebars, _, view) {
     "use strict";
 
+    function loadPastWorkouts () {
+        return $.ajax({
+            type: "GET",
+            data: { limit: 14 },
+            url: "/rest/stats/workout"
+        });
+    }
+
     // View workout stats/history
     var StatsView = view.View.extend({
         init: function () {
             this._super();
             this.compileTemplates(['stats-main-template', 'stats-history-template']);
             this.registerPartials(Handlebars, ['exercise-no-edit-partial']);
-        },
-
-        loadPastWorkouts: function () {
-            return $.ajax({
-                type: "GET",
-                data: { limit: 14 },
-                url: "/rest/stats/workout"
-            });
         },
 
         renderPastWorkouts: function (ws) {
@@ -43,7 +43,7 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
         render: function () {
             var self = this;
 
-            $.when(self.loadPastWorkouts()).done(function (ws, es) {
+            $.when(loadPastWorkouts()).done(function (ws, es) {
                 self.renderPastWorkouts(ws);
             });
         }
