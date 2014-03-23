@@ -40,12 +40,14 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
         init: function () {
             var self = this;
             this._super();
-            this.mainTemplate = Handlebars.compile($("#workouts-template").html());
-            this.workoutTemplate = Handlebars.compile($("#workout-template").html());
-            this.exerciseTemplate = Handlebars.compile($("#exercise-template").html());
-            this.addExerciseTemplate = Handlebars.compile($("#add-exercise-template").html());
-            this.addExerciseSetsTemplate = Handlebars.compile($("#add-exercise-sets-template").html());
-            Handlebars.registerPartial("addSetControl", $("#add-set-control-partial").html());
+            this.compileTemplates(['workouts-template',
+                                   'workout-template',
+                                   'exercise-template',
+                                   'add-exercise-template',
+                                   'add-exercise-sets-template']);
+
+            this.registerPartials(Handlebars, ['add-set-control-partial']);
+
             this.model = new model.WorkoutCont();
         },
 
@@ -102,7 +104,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
 
         renderExercise: function (exercise, workoutId, elt) {
             var self = this;
-            $(elt).html(self.exerciseTemplate(exercise));
+            $(elt).html(self.templates.exercise(exercise));
             this.attachAddExercise(elt, function (d) { exercise.addSet(d); }, exercise, workoutId);
 
             // Activate delete buttons
@@ -123,7 +125,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
             var self = this;
 
             var c = { exercises: workout.getExercises() };
-            $(elt).html(self.workoutTemplate(c));
+            $(elt).html(self.templates.workout(c));
 
             $(".exercise", elt).each(function (exerciseIdx) {
                 var exerciseElt = this;
@@ -131,7 +133,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
                 exercise.setUpdateHandler(function (e) { self.renderExercise(e, workout.id, exerciseElt); });
             });
 
-            $("div.add-exercise", elt).html(self.addExerciseTemplate(
+            $("div.add-exercise", elt).html(self.templates.addExercise(
                 { exerciseTypes: self.model.getExerciseTypes() }
             ));
 
@@ -139,7 +141,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
                 var selectedExerciseId = $(this).val();
                 var addExerciseScope = $(".add-exercise-sets", elt);
                 var e = self.model.getExerciseById(selectedExerciseId);
-                addExerciseScope.html(self.addExerciseSetsTemplate(e));
+                addExerciseScope.html(self.templates.addExerciseSets(e));
 
                 self.attachAddExercise(addExerciseScope,
                                        function (d) { workout.addExerciseSet(e, d); },
@@ -152,7 +154,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view'], function($, Handlebars
             var self = this;
             var workouts = { workouts: workoutCont.getWorkouts() };
 
-            $("#app-container").html(self.mainTemplate(workouts));
+            $("#app-container").html(self.templates.workouts(workouts));
 
             $(".workout").each(function (workoutIdx) {
                 var workoutElt = this;

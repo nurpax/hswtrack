@@ -7,10 +7,15 @@ define(['jquery', 'handlebars', 'app/class'], function($, Handlebars, obj) {
         });
     }
 
-    function camelCase(tpl) {
+    function camelCase(tpl, postfix) {
         var ms = tpl.split("-");
         if (ms.length >= 2) {
             var n = ms[0];
+
+            if (_.last(ms) !== postfix) {
+                throw new Error("template name must end in -"+postfix);
+            }
+
             for (var i = 1; i < ms.length-1; i++) {
                 n = n + capitalizeWord(ms[i]);
             }
@@ -19,6 +24,15 @@ define(['jquery', 'handlebars', 'app/class'], function($, Handlebars, obj) {
             throw new Error("malformed template name: "+tpl);
         }
     }
+
+    function camelCaseTemplate(tpl) {
+        return camelCase(tpl, "template");
+    }
+
+    function camelCasePartial(tpl) {
+        return camelCase(tpl, "partial");
+    }
+
 
     var View = Class.extend({
         init: function () {
@@ -32,8 +46,20 @@ define(['jquery', 'handlebars', 'app/class'], function($, Handlebars, obj) {
             var self = this;
 
             _.each(tpls, function (tpl) {
-                var n = camelCase(tpl);
+                var n = camelCaseTemplate(tpl);
                 self.templates[n] = Handlebars.compile($("#"+tpl).html());
+            });
+        },
+
+        // Search DOM for 'foo-bar-partial' ID'd elements, compile
+        // using Handlebars and register it as a partial into the
+        // Handlebars instance.
+        registerPartials: function (h, tpls) {
+            var self = this;
+
+            _.each(tpls, function (tpl) {
+                var n = camelCasePartial(tpl);
+                h.registerPartial(n, $("#"+tpl).html());
             });
         }
 
