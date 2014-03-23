@@ -1,4 +1,4 @@
-define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebars, _, view) {
+define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model'], function($, Handlebars, _, view, model) {
     "use strict";
 
     // TODO these should be in a model class
@@ -34,12 +34,15 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
 
             this.templateHome = Handlebars.compile($("#home-template").html());
             this.templateNotes = Handlebars.compile($("#notes-template").html());
+
+            this.model = new model.WeightCont();
         },
 
-        renderPlot: function(app, weights) {
-            var self = this;
-            var data   = weights;
-            var svgDiv = $("div#weight-plot");
+        renderPlot: function(weights) {
+            var self    = this;
+            var data    = weights.weights;
+            var context = self.model.app.context;
+            var svgDiv  = $("div#weight-plot");
 
             var margin = {top: 10, right: 10, bottom: 30, left: 25},
             width  = svgDiv.width() - margin.left - margin.right,
@@ -76,8 +79,8 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
             var pd = data.map(function (d) { return { date: parseDate(d.date), weight: d.weight }; });
             x.domain(d3.extent(pd, function(d) { return d.date; }));
 
-            if (app.context.options.minGraphWeight)
-                y.domain([app.context.options.minGraphWeight, d3.max(pd, function(d) { return d.weight; })]);
+            if (context.options.minGraphWeight)
+                y.domain([context.options.minGraphWeight, d3.max(pd, function(d) { return d.weight; })]);
             else
                 y.domain(d3.extent(pd, function(d) { return d.weight; }));
 
@@ -105,7 +108,7 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
         renderComments: function(notes)
         {
             var self = this;
-            $("#comments").html(self.templateNotes({ notes: notes }));
+            $("#comments").html(self.templateNotes(notes));
 
             // Delete buttons
             $("#comments").each(function () {
@@ -116,90 +119,56 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
                         if (!confirm("OK to delete note?"))
                             return;
 
-                        $.ajax({ url: "/rest/note",
-                                 type: "DELETE",
-                                 data: { id: notes[idx].id },
-                                 success: function (resp) {
-                                     self.renderComments(resp);
-                                 }
-                               });
+                        notes.deleteById(notes.notes[idx].id);
                     });
                 });
             });
 
             // Add button
             $("button#note-input-btn").click(function () {
-                $.ajax({ url: "/rest/note",
-                         type: "POST",
-                         data: { text: $("input#note-input").val() },
-                         success: function (resp) {
-                             self.renderComments(resp);
-                         }
-                       });
+                notes.addNote($("input#note-input").val());
             });
         },
 
-        renderHome: function(appContext, weights, notes) {
+        renderHome: function() {
             var self = this;
-            var plot = function(days) {
-                self.selectedGraphDays = days;
-                $.when(loadWeights(days)).done(function (ws) {
-                    self.renderPlot(appContext, ws);
+
+            $("#app-container").html(self.templateHome(self.model.app.context));
+
+            self.model.weights.setUpdateHandler(function (w) { self.renderPlot(w); });
+            self.model.notes.setUpdateHandler(function (n) { self.renderComments(n); });
+
+            // Weight input
+            $("#weight-input-btn").click(function () {
+                var newWeight = $("input#weight-input").val();
+                self.model.setWeight(newWeight);
+            });
+
+            // Weight clear
+            $("#weight-clear-btn").click(function () {
+                self.model.clearWeight();
+            });
+
+            var attachRadio = function (name, days) {
+                $(name).each(function () {
+                    if (self.selectedGraphDays == days)
+                        $(this).addClass("active");
+                }).click(function () {
+                    self.selectedGraphDays = days;
+                    self.model.weights.load(days);
                 });
-            };
-
-            $("#app-container").html(self.templateHome(appContext.context));
-            self.renderPlot(appContext, weights);
-            self.renderComments(notes);
-
-            var attachRadio = function (name, n) {
-                $(name)
-                    .each(function () {
-                        if (self.selectedGraphDays == n)
-                            $(this).addClass("active");
-                    })
-                        .click(function () {
-                            plot(n);
-                        });
             };
 
             attachRadio("label#graph-3-mo", 3*30);
             attachRadio("label#graph-12-mo", 12*30);
             attachRadio("label#graph-24-mo", 24*30);
             attachRadio("label#graph-all", 0);
-
-            // Weight input
-            $("#weight-input-btn").click(function () {
-                var newWeight = $("input#weight-input").val();
-                $.ajax({
-                    type: "POST",
-                    url: "/rest/weight",
-                    data: { weight: newWeight },
-                    success: function (r) { self.reloadHome(); }
-                });
-            });
-
-            // Weight clear
-            $("#weight-clear-btn").click(function () {
-                $.ajax({
-                    type: "POST",
-                    url: "/rest/weight",
-                    data: { weight: null },
-                    success: function (r) { self.reloadHome(); }
-                });
-            });
         },
 
-        reloadHome: function()
-        {
+        render: function () {
             var self = this;
-            // Load home & weights concurrently
-            $.when(loadAppContext(),
-                   loadWeights(self.selectedGraphDays),
-                   loadNotes()).done(
-                       function (resp, wresp, nresp) {
-                           self.renderHome(resp[0], wresp[0], nresp[0]);
-                       });
+            this.model.setUpdateHandler(function () { self.renderHome(); });
+            this.model.load(this.selectedGraphDays);
         }
 
     });

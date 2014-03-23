@@ -95,7 +95,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         var w  = new workout.WorkoutView();
         var s  = new stats.StatsView();
 
-        router.add("/",         function()  { weightView.reloadHome(); });
+        router.add("/",         function()  { weightView.render(); });
         router.add("/workout",  function () { w.render(); });
         router.add("/workout/add-exercise",
                    function () { et.render(); });

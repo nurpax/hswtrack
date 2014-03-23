@@ -3,6 +3,7 @@
 module Model.Db (
     createTables
   , setWeight
+  , deleteWeight
   , queryWeights
   , queryTodaysWeight
   , queryOptions
@@ -26,7 +27,7 @@ import           Control.Monad
 import           Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Text as T
-import           Data.Time (Day, UTCTime)
+import           Data.Time (UTCTime)
 import           Database.SQLite.Simple
 import           Database.SQLite.Simple.ToField
 
@@ -40,6 +41,9 @@ data SetRow = SetRow {
   , _srWeight     :: Double
   , _srComment    :: Maybe T.Text
   }
+
+instance FromRow WeightSample where
+  fromRow = WeightSample <$> fmap RowId field <*> field <*> field
 
 instance FromRow Note where
   fromRow = Note <$> field <*> field <*> field
@@ -144,35 +148,40 @@ createTables conn = do
   upgradeVersion 0 upgradeTo1
   execute_ conn "COMMIT"
 
+setWeight :: Connection -> User -> UTCTime -> Double -> IO WeightSample
+setWeight conn (User uid _) today v = do
+  execute conn "INSERT INTO weights (user_id, date, weight) VALUES(?,date(?),?)" (uid, today, v)
+  rowId <- lastInsertRowId conn
+  [r] <- query conn "SELECT id,datetime(date),weight FROM weights WHERE user_id = ? AND id = ? LIMIT 1" (uid, rowId)
+  return r
 
-setWeight :: Connection -> User -> UTCTime -> Maybe Double -> IO ()
-setWeight conn (User uid _) today = maybe del ins
-  where
-    del =
-      execute conn "DELETE FROM weights WHERE user_id = ? AND date = date(?)" (uid, today)
-    ins v =
-      execute conn "INSERT INTO weights (user_id, date, weight) VALUES(?,date(?),?)" (uid, today, v)
+deleteWeight :: Connection -> User -> RowId -> IO ()
+deleteWeight conn (User uid _) (RowId rowId) =
+  execute conn "DELETE FROM weights WHERE user_id = ? AND id = ?" (uid, rowId)
 
-queryTodaysWeight :: Connection -> User -> UTCTime -> IO (Maybe Double)
+queryTodaysWeight :: Connection -> User -> UTCTime -> IO (Maybe WeightSample)
 queryTodaysWeight conn (User uid _) today = do
-  weights <- query conn "SELECT weight FROM weights WHERE user_id = ? AND date = date(?) LIMIT 1" (uid, today)
+  w <- query conn "SELECT id,datetime(date),weight FROM weights WHERE user_id = ? AND date = date(?) LIMIT 1" (uid, today)
   return $
-    case weights of
-      [Only f] -> Just f
+    case w of
+      [f] -> Just f
       _ -> Nothing
 
-queryWeights :: Connection -> User -> UTCTime -> Int -> IO [(Day, Double)]
+queryWeights :: Connection -> User -> UTCTime -> Int -> IO [WeightSample]
 queryWeights conn (User uid _) today lastNDays = do
   let days' = if lastNDays == 0 then maxBound else lastNDays
   query conn
-    (Query $ T.concat [ "SELECT date,weight FROM weights WHERE (user_id = ?) AND "
+    (Query $ T.concat [ "SELECT id,datetime(date),weight FROM weights WHERE (user_id = ?) AND "
                       , "((julianday(?) - julianday(date)) <= ?) "
                       , "ORDER BY date ASC"])
     (uid, today, days')
 
-addNote :: Connection -> User -> UTCTime -> T.Text -> IO ()
-addNote conn (User uid _) today note =
+addNote :: Connection -> User -> UTCTime -> T.Text -> IO Note
+addNote conn (User uid _) today note = do
   execute conn "INSERT INTO notes (user_id,timestamp,comment) VALUES (?,?,?)" (uid, today, note)
+  rowId <- lastInsertRowId conn
+  [n] <- query conn "SELECT id,timestamp,comment FROM notes WHERE id = ?" (Only rowId)
+  return n
 
 deleteNote :: Connection -> User -> Int -> IO ()
 deleteNote conn (User uid _) noteId =

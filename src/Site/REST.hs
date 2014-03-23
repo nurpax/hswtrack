@@ -10,6 +10,7 @@ module Site.REST
   , restAppContext
   , restLoginError
   , restSetWeight
+  , restClearWeight
   , restListWeights
   , restAddNote
   , restDeleteNote
@@ -51,13 +52,8 @@ data AppContext = AppContext {
 
 data LoggedInContext = LoggedInContext {
     _ctxLogin :: T.Text
-  , _ctxWeight :: Maybe Double
+  , _ctxWeight :: Maybe WeightSample
   , _ctxSettings :: M.Map String ConfigVal
-  }
-
-data WeightSample = WeightSample {
-    wsDate :: Day
-  , wsWeight :: Double
   }
 
 instance ToJSON AppContext where
@@ -79,8 +75,9 @@ instance ToJSON ConfigVal where
   toJSON (CVDouble flt) = Number (realToFrac flt)
 
 instance ToJSON WeightSample where
-  toJSON (WeightSample d w) =
-    object [ "date"  .= formatTime defaultTimeLocale "%F" d
+  toJSON (WeightSample i d w) =
+    object [ "id"     .= i
+           , "date"   .= formatTime defaultTimeLocale "%F" d
            , "weight" .= w
            ]
 
@@ -182,15 +179,21 @@ restAppContext = jsonResponse get
           return (weight, options)
       return $ AppContext True Nothing (Just (LoggedInContext login weight options))
 
+restClearWeight :: H ()
+restClearWeight = voidResponse get
+  where
+    get user = do
+      weightId <- RowId <$> getInt64Param "id"
+      lift $ withDb $ \conn -> Model.deleteWeight conn user weightId
+
 restSetWeight :: H ()
-restSetWeight =
-  method POST (jsonResponse get)
+restSetWeight = jsonResponse get
   where
     get user = do
       today  <- getToday
-      weight <- getDoubleParamOrEmpty "weight"
-      lift $ withDb $ \conn -> Model.setWeight conn user today weight
-      return (1 :: Int)
+      weight <- getDoubleParam "weight"
+      lift $ withDb $ \conn -> do
+        Model.setWeight conn user today weight
 
 restListWeights :: H ()
 restListWeights = method GET (jsonResponse get)
@@ -198,8 +201,7 @@ restListWeights = method GET (jsonResponse get)
     get user = do
       today     <- getToday
       lastNDays <- getIntParam "days"
-      weights   <- lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
-      return . map (uncurry WeightSample) $ weights
+      lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
 
 restAddNote :: H ()
 restAddNote = jsonResponse get
@@ -207,19 +209,14 @@ restAddNote = jsonResponse get
     get user = do
       today    <- getToday
       noteText <- getTextParam "text"
-      lift $ withDb $ \conn -> do
-        Model.addNote conn user today noteText
-        Model.queryTodaysNotes conn user today
+      lift $ withDb $ \conn -> Model.addNote conn user today noteText
 
 restDeleteNote :: H ()
-restDeleteNote = jsonResponse get
+restDeleteNote = voidResponse get
   where
     get user = do
-      today  <- getToday
       noteId <- getIntParam "id"
-      lift $ withDb $ \conn -> do
-        Model.deleteNote conn user noteId
-        Model.queryTodaysNotes conn user today
+      lift $ withDb $ \conn -> Model.deleteNote conn user noteId
 
 restListNotes :: H ()
 restListNotes = method GET (jsonResponse get)

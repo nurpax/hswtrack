@@ -3,6 +3,7 @@
 module Model.Types (
     User(..)
   , RowId(..)
+  , WeightSample(..)
   , ConfigVal(..)
   , Note(..)
   , Workout(..)
@@ -23,6 +24,12 @@ newtype RowId = RowId { unRowId :: Int64 }
 data User = User Int T.Text
 
 data ConfigVal = CVString T.Text | CVDouble Double
+
+data WeightSample = WeightSample {
+    wsId     :: RowId
+  , wsDate   :: UTCTime
+  , wsWeight :: Double
+  }
 
 data Note = Note Int UTCTime T.Text
 
