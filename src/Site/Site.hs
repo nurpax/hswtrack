@@ -14,6 +14,7 @@ import           Control.Concurrent
 import           Control.Monad.Trans (liftIO)
 import           Control.Lens
 import           Data.ByteString (ByteString)
+import qualified Data.Configurator as DC
 import qualified Data.Text as T
 import           Snap.Snaplet.Auth.Backends.SqliteSimple
 import           Snap.Snaplet.Session.Backends.CookieSession
@@ -84,8 +85,11 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     d <- nestSnaplet "db" db sqliteInit
     a <- nestSnaplet "auth" auth $ initSqliteAuth sess d
 
+    cc <- getSnapletUserConfig
+    useTestUser <- liftIO $ DC.lookupDefault False cc "test-user-override"
+
     -- Grab the DB connection pool from the sqlite snaplet and call
     -- into the Model to create all the DB tables if necessary.
     let c = sqliteConn $ d ^# snapletValue
     liftIO $ withMVar c $ \conn -> Model.createTables conn
-    return $ App s d a
+    return $ App s d a useTestUser

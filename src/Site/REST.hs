@@ -27,6 +27,8 @@ module Site.REST
 ------------------------------------------------------------------------------
 import           Control.Applicative
 import           Control.Error.Safe (tryJust)
+import           Control.Monad (unless, void)
+import           Control.Monad.State (gets)
 import           Control.Monad.Trans (lift, liftIO)
 import           Control.Monad.Trans.Either
 import           Data.Aeson
@@ -130,10 +132,22 @@ restLoginError :: MonadSnap m => T.Text -> m ()
 restLoginError e =
   writeJSON (AppContext False (Just e) Nothing)
 
+-- | Create dummy user for unit & E2E testing
+createTestUser :: H (Maybe AuthUser)
+createTestUser = do
+  testUserExists <- with auth $ usernameExists "test"
+  unless testUserExists (void $ with auth $ createUser "test" "test")
+  loginTestUser
+  where
+    loginTestUser = do
+      userOrErr <- with auth $ loginByUsername "test" (ClearText "test") True
+      either (\_ -> return Nothing) (return . Just) userOrErr
+
 -- | Run actions with a logged in user or go back to the login screen
 requireLoggedInUser :: (Model.User -> EitherT String H (H ())) -> H ()
-requireLoggedInUser action =
-  with auth currentUser >>= go
+requireLoggedInUser action = do
+  useTestUser <- gets _testUserOverride
+  go =<< if useTestUser then createTestUser else with auth currentUser
   where
     go Nothing  =
       modifyResponse $ setResponseStatus 403 "Login required"
