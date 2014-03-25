@@ -1,40 +1,57 @@
-var requirejs = require('requirejs')
-  , Q         = require('q')
-  , request   = Q.denodeify(require('request'))
+"use strict";
 
-requirejs.config({
-    // Pass the top-level main.js/index.js require
-    // function to requirejs so that node modules
-    // are loaded relative to the top-level JS file.
-    nodeRequire: require
+var Q      = require('q')
+  , qr     = Q.denodeify(require('request'))
+  , _      = require('underscore')
+  , config = require('./config')
+  , Class  = require('class.js');
+
+var Test = Class({
+    init: function () {
+    },
+
+    description: function () {
+        throw new Error("Test.description must be overridden");
+    }
 });
 
-const URL = "http://localhost:8000";
+var URL = "http://localhost:8000";
+
+function logGets() {
+    return config.logging.getBody;
+}
 
 function restUrl(s) {
     return URL + s;
 }
 
-requirejs(['underscore', 'foo'], function (_, foo) {
+function get(params) {
+    return qr(_.extend(params, { method: 'GET' }))
+          .then(function (r) {
+              if (logGets()) {
+                  console.log("GET: "+r[0].body);
+              }
+              return r[0];
+          });
+}
 
-    var resp = request({
-        url: restUrl('/rest/weights?days=1'),
-        method: 'GET'
-    });
+function assert(cond, msg) {
+    if (!cond) {
+        var m = msg ? msg : "";
+        throw new Error("test assertion failed: " + m);
+    }
+}
 
-    var rr = resp.then(function (res) {
-        var r = res[0];
-        if (r.statusCode >= 300) {
-            console.log(r);
-            throw new Error('Server responded with status code ' + r.statusCode + ' - ' + r.body)
-        } else {
-            return r;
-        }
-    });
+function assertStatusCodeOK(r) {
+    assert(r.statusCode < 300,
+           'Server responded with status code ' + r.statusCode + ' - ' + r.body);
+}
 
-    Q.when(rr, function (r) {
-        console.log(r.body);
-    }, function (err) {
-        console.log("error: " + err.toString());
-    }).done();
-});
+module.exports = {
+    Test:     Test
+  , restUrl:  restUrl
+  , qrequest: qr
+  , get:      get
+  , assert: assert
+  , assertStatusCodeOK: assertStatusCodeOK
+};
