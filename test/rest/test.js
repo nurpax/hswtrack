@@ -35,10 +35,33 @@ function get(params) {
           });
 }
 
+function post(params) {
+    return qr(_.extend(params, { method: 'POST' }))
+          .then(function (r) {
+              if (logGets()) {
+                  console.log("GET: "+r[0].body);
+              }
+              return r[0];
+          });
+}
+
+
+function del(params) {
+    return qr(_.extend(params, { method: 'DELETE' }))
+          .then(function (r) {
+              if (logGets()) {
+                  console.log("GET: "+r[0].body);
+              }
+              return r[0];
+          });
+}
+
 function assert(cond, msg) {
     if (!cond) {
         var m = msg ? msg : "";
-        throw new Error("test assertion failed: " + m);
+        var e = "!!! test assertion failed: " + m;
+        console.log(e);
+        throw new Error(e);
     }
 }
 
@@ -51,7 +74,9 @@ module.exports = {
     Test:     Test
   , restUrl:  restUrl
   , qrequest: qr
+  , del:      del
   , get:      get
+  , post:     post
   , assert: assert
   , assertStatusCodeOK: assertStatusCodeOK
 };

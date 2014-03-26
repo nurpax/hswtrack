@@ -213,7 +213,7 @@ queryExercise conn rowId = do
 
 queryExercises :: Connection -> IO [Exercise]
 queryExercises conn =
-  query_ conn "SELECT id,name,type FROM exercises ORDER BY lower(name)"
+  query_ conn "SELECT id,name,type FROM exercises"
 
 addExercise :: Connection -> T.Text -> ExerciseType -> IO Exercise
 addExercise conn name ty = do
