@@ -168,6 +168,10 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     // Exercise tracking
     /*--------------------------------------------------------------*/
 
+    function sortExerciseTypes(es) {
+        return _.sortBy(es, function (e) { return e.name.toLowerCase(); });
+    }
+
     /*--------------------------------------------------------------*/
     var ExerciseTypes = ModelBase.extend({
         init: function(es) {
@@ -177,7 +181,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         load: function() {
             var self = this;
             $.when(loadExerciseTypes()).done(function (es) {
-                self.exerciseTypes = es;
+                self.exerciseTypes = sortExerciseTypes(es);
                 self.update();
             });
         },
@@ -193,8 +197,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                       data: data,
                       success: function (resp) {
                           self.exerciseTypes.push(resp);
-                          self.exerciseTypes = _.sortBy(self.exerciseTypes,
-                                                        function (e) { return e.name.toLowerCase(); });
+                          self.exerciseTypes = sortExerciseTypes(self.exerciseTypes);
                           self.update();
                       }
                     });
