@@ -3,7 +3,9 @@ hswtrack - fitness app
 
 A web application for tracking your weight and keeping track of your exercises.  I found this to be the best way to combine exercising and programming.
 
-[Imgur](http://i.imgur.com/3kgnvm7)
+Here's a screenshot:
+
+<a href="http://imgur.com/3kgnvm7"><img src="http://i.imgur.com/3kgnvm7l.png" title="Hosted by imgur.com"/></a>
 
 Tech details
 ----------------
