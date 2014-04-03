@@ -6,3 +6,7 @@ cabal.sandbox.config
 /hswtrack.db
 /log/access.log
 /log/error.log
+/*.hs.html
+/hswtrack.tix
+/hpc_*.html
+/.hpc
