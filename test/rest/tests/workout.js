@@ -90,6 +90,26 @@ var Workout1 = test.Test.extend({
                 test.assert(workout.exercises[1].sets[0].reps == 5);
                 test.assert(workout.exercises[1].sets[0].weight == 100);
                 test.assert(workout.exercises[1].sets[1].reps == 6);
+
+                // Delete a set and re-query the workout
+                return test.del( {
+                    url: test.restUrl('/rest/workout/exercise'),
+                    form: { id: workout.exercises[0].sets[0].id }
+                    }).then(function () {
+                        return test.get({
+                            url: test.restUrl('/rest/workout'),
+                            form: { id: workout.id }
+                        });
+                    });
+            }).then(function (r) {
+                test.assertStatusCodeOK(r);
+                var workout = JSON.parse(r.body);
+                // Second exercise's sets from above should've shifted
+                // to become the first exercise sets now.
+                test.assert(workout.exercises[0].name == "deadlift");
+                test.assert(workout.exercises[0].sets[0].reps == 5);
+                test.assert(workout.exercises[0].sets[0].weight == 100);
+                test.assert(workout.exercises[0].sets[1].reps == 6);
             });
         });
         return resp;
