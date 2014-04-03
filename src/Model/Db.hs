@@ -18,7 +18,6 @@ module Model.Db (
   , queryExercises
   , addExercise
   , createWorkout
-  , queryWorkoutExerciseSets
   , addExerciseSet
   , deleteExerciseSet) where
 
@@ -284,10 +283,6 @@ queryTodaysWorkouts conn user@(User uid _) today = do
       "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (date(timestamp) = date(?))" (uid, today)
       :: IO [Workout]
   mapM (workoutExercises conn user exercises) ws
-
-queryWorkoutExerciseSets :: Connection -> User -> RowId -> RowId -> IO [ExerciseSet]
-queryWorkoutExerciseSets conn user workoutId_ exerciseId_ =
-  setRowsToSets <$> querySets conn user workoutId_ (Just exerciseId_)
 
 addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ExerciseSet
 addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
