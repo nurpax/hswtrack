@@ -18,7 +18,7 @@ import Snap.Snaplet.SqliteSimple
 ------------------------------------------------------------------------------
 data App = App
     { _sess :: Snaplet SessionManager
-    , _db :: Snaplet Sqlite
+    , _db   :: Snaplet Sqlite
     , _auth :: Snaplet (AuthManager App)
       -- | If set, testUserOverride will force the application to
       -- bypass login & authentication and instead use a hardcoded
@@ -27,10 +27,6 @@ data App = App
     }
 
 makeLenses ''App
-
-instance HasSqlite (Handler b App) where
-    getSqliteState = with db get
-
 
 ------------------------------------------------------------------------------
 type AppHandler = Handler App App
