@@ -8,10 +8,8 @@ module Site.Util (
   , parseInt64
   , tryGetParam
   , getDoubleParam
-  , getDoubleParamOrEmpty
   , getIntParam
   , getInt64Param
-  , getInt64ParamOrEmpty
   , getTextParam
   , maybeGetTextParam
   , withDb
@@ -20,7 +18,6 @@ module Site.Util (
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
@@ -112,19 +109,9 @@ getInt64Param :: ByteString -> EitherT String H Int64
 getInt64Param n =
   getTextParam n >>= \p -> parseInt64 p
 
-getInt64ParamOrEmpty :: ByteString -> EitherT String H (Maybe Int64)
-getInt64ParamOrEmpty n = do
-  v <- getTextParam n
-  if v == "" then return Nothing else Just <$> parseInt64 v
-
 getDoubleParam :: ByteString -> EitherT String H Double
 getDoubleParam n =
   getTextParam n >>= \p -> parseDouble p
-
-getDoubleParamOrEmpty :: ByteString -> EitherT String H (Maybe Double)
-getDoubleParamOrEmpty n = do
-  v <- getTextParam n
-  if v == "" then return Nothing else Just <$> parseDouble v
 
 getTextParam :: ByteString -> EitherT String H T.Text
 getTextParam n =
