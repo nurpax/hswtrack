@@ -220,16 +220,15 @@ addExercise conn name ty = do
   eid <- lastInsertRowId conn
   queryExercise conn (RowId eid)
 
-querySets :: Connection -> User -> RowId -> Maybe RowId -> IO [SetRow]
-querySets conn (User uid _) wrkId exerciseId_ =
+querySets :: Connection -> User -> RowId -> IO [SetRow]
+querySets conn (User uid _) wrkId =
   query conn
     (Query $
       T.concat [ "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets "
-                , " WHERE (user_id = ?) AND (workout_id = ?) AND "
-                , if isNothing exerciseId_ then "?" else "(exercise_id = ?)"
+                , " WHERE (user_id = ?) AND (workout_id = ?) "
                 , " ORDER BY id"
                 ])
-      (uid, unRowId wrkId, fromMaybe 1 (unRowId <$> exerciseId_))
+      (uid, unRowId wrkId)
 
 setRowToSet :: SetRow -> ExerciseSet
 setRowToSet (SetRow i ts _eid reps weight comment) = ExerciseSet i ts reps weight comment
@@ -250,7 +249,7 @@ workoutExercises conn user exercises w = do
   -- explicit "UI insert order id" in the database schema so we
   -- do a bit of gymnastics here to extract the same ordering
   -- based on row ids.
-  sets <- querySets conn user (workoutId w) Nothing
+  sets <- querySets conn user (workoutId w)
   let exerciseOrder =
         foldl (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
   let sets' =
