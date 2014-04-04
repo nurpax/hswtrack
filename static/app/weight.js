@@ -1,31 +1,6 @@
 define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model'], function($, Handlebars, _, view, model) {
     "use strict";
 
-    // TODO these should be in a model class
-    function loadAppContext() {
-        return $.ajax({
-            type: "GET",
-            url: "/rest/app",
-            data: []
-        });
-    }
-
-    function loadWeights(ndays) {
-        return $.ajax({
-            type: "GET",
-            url: "/rest/weights",
-            data: { days: ndays }
-        });
-    }
-
-    function loadNotes() {
-        return $.ajax({
-            type: "GET",
-            url: "/rest/notes",
-            data: []
-        });
-    }
-
     // View workout stats/history
     var WeightView = view.View.extend({
         init: function () {
