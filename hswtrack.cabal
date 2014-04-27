@@ -51,3 +51,23 @@ Executable hswtrack
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
                  -fno-warn-orphans -fno-warn-unused-do-bind
+
+test-suite resttest
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+
+  hs-source-dirs: test
+  main-is:        Test.hs
+
+  ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind
+
+  build-depends: base
+               , aeson
+               , containers
+               , HUnit
+               , lens
+               , test-framework
+               , test-framework-hunit
+               , text
+               , time
+               , wreq
