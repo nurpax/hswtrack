@@ -64,6 +64,7 @@ test-suite resttest
   build-depends: base
                , aeson
                , containers
+               , http-client
                , HUnit
                , lens
                , test-framework
