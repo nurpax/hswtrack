@@ -3,7 +3,6 @@
 import qualified Control.Exception as E
 import           Control.Lens
 import           Data.Aeson.Lens
-import           Data.Monoid
 import qualified Data.Text as T
 import           Network.Wreq
 import qualified Network.HTTP.Client as HT
@@ -60,12 +59,11 @@ testLoggedInFail url opts = do
 
 main :: IO ()
 main =
-  defaultMainWithOpts
+  defaultMain
   [ testGroup "require auth fail" requireAuthFail
   , buildTest $ createUserTests [("logged in?", testLoggedInOk)]
   , buildTest $ loginUserTests  [("logged in?", testLoggedInOk)]
   ]
-  mempty
   where
     requireAuthFail =
       map (\u -> testCase u (testLoggedInFail (mkUrl u) defaults)) authReqd
