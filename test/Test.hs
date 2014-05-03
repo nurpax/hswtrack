@@ -53,16 +53,35 @@ testLoggedInFail url opts = do
   where
     check (Left (HT.StatusCodeException s _ _))
       | s ^. statusCode == 403 = assertBool "error ok" True
-      | otherwise              = assertBool "unexpected status code" False
-    check (Left _)  = assertBool "unexpected exception caught" False
-    check (Right r) = assertBool "req should've failed" False
+      | otherwise              = assertFailure "unexpected status code"
+    check (Left _)  = assertFailure "unexpected exception caught"
+    check (Right _) = assertFailure "req should've failed"
+
+testAddExercise :: Options -> Assertion
+testAddExercise opts = do
+  let name = "Chin-ups" :: T.Text
+      ty   = "BW"       :: T.Text
+  r <- postWith opts (mkUrl "/rest/exercise") ["name" := name, "type" := ty]
+  -- Verify that the newly created object matches creation params
+  name @=? r ^. responseBody . key "name" . _String
+  ty   @=? r ^. responseBody . key "type" . _String
+  -- This is test code, so it's OK if we fail the below non-exhaustive
+  -- pattern match
+  let (Just oid) = r ^? responseBody . key "id" . _Integer
+  -- Verify that the object ended up in the global list of exercises
+  r <- getWith opts (mkUrl "/rest/exercise")
+  assertBool "oid should be in list" (oid `elem` exercises r)
+  where
+    exercises r = r ^. responseBody ^.. values . key "id" . _Integer
 
 main :: IO ()
 main =
   defaultMain
-  [ testGroup "require auth fail" requireAuthFail
-  , buildTest $ createUserTests [("logged in?", testLoggedInOk)]
-  , buildTest $ loginUserTests  [("logged in?", testLoggedInOk)]
+  [ testGroup "Require auth fail" requireAuthFail
+  , buildTest $ createUserTests [("Logged in?",    testLoggedInOk)]
+  , buildTest $ loginUserTests  [ ("Logged in?",   testLoggedInOk)
+                                , ("Add exercise", testAddExercise)
+                                ]
   ]
   where
     requireAuthFail =
