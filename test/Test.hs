@@ -17,7 +17,6 @@ createUserTests tests = do
       passwd = "testpass" :: T.Text
   r <- post "http://localhost:8000/rest/new_user" ["login" := login, "password" := passwd]
   let opts = defaults & cookies .~ (r ^. responseCookieJar)
-  print $ opts ^. cookies
   return
     . testGroup "Tests with created user"
     . map (\(name, test) -> testCase name (test opts)) $ tests
@@ -30,7 +29,6 @@ loginUserTests tests = do
       passwd = "testpass" :: T.Text
   r <- post "http://localhost:8000/rest/login" ["login" := login, "password" := passwd]
   let opts = defaults & cookies .~ (r ^. responseCookieJar)
-  print $ opts ^. cookies
   return
     . testGroup "Tests with logged in user"
     . map (\(name, test) -> testCase name (test opts)) $ tests

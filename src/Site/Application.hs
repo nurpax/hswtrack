@@ -20,10 +20,6 @@ data App = App
     { _sess :: Snaplet SessionManager
     , _db   :: Snaplet Sqlite
     , _auth :: Snaplet (AuthManager App)
-      -- | If set, testUserOverride will force the application to
-      -- bypass login & authentication and instead use a hardcoded
-      -- 'test' user for all model accesses.
-    , _testUserOverride :: Bool
     }
 
 makeLenses ''App

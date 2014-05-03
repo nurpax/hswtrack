@@ -85,11 +85,8 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     d <- nestSnaplet "db" db sqliteInit
     a <- nestSnaplet "auth" auth $ initSqliteAuth sess d
 
-    cc <- getSnapletUserConfig
-    useTestUser <- liftIO $ DC.lookupDefault False cc "test-user-override"
-
     -- Grab the DB connection pool from the sqlite snaplet and call
     -- into the Model to create all the DB tables if necessary.
     let c = sqliteConn $ d ^# snapletValue
     liftIO $ withMVar c $ \conn -> Model.createTables conn
-    return $ App s d a useTestUser
+    return $ App s d a
