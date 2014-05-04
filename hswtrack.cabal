@@ -70,4 +70,5 @@ test-suite resttest
                , test-framework-hunit
                , text
                , time
+               , vector
                , wreq

@@ -3,7 +3,11 @@
 import qualified Control.Exception as E
 import           Control.Lens
 import           Data.Aeson.Lens
+import qualified Data.ByteString as BS
+import           Data.List
+import           Data.Maybe (fromJust)
 import qualified Data.Text as T
+import qualified Data.Vector as V
 import           Network.Wreq
 import qualified Network.HTTP.Client as HT
 import           Test.Framework
@@ -20,6 +24,9 @@ login = "test"
 -- Test user password
 passwd :: T.Text
 passwd = "testpass"
+
+emptyPostParams :: [(BS.ByteString, BS.ByteString)]
+emptyPostParams = []
 
 -- | Create a user and run a list of subtests with cookies acquired
 -- from the login process.
@@ -57,10 +64,8 @@ testLoggedInFail url opts = do
     check (Left _)  = assertFailure "unexpected exception caught"
     check (Right _) = assertFailure "req should've failed"
 
-testAddExercise :: Options -> Assertion
-testAddExercise opts = do
-  let name = "Chin-ups" :: T.Text
-      ty   = "BW"       :: T.Text
+testAddExercise :: T.Text -> T.Text -> Options -> Assertion
+testAddExercise name ty opts = do
   r <- postWith opts (mkUrl "/rest/exercise") ["name" := name, "type" := ty]
   -- Verify that the newly created object matches creation params
   name @=? r ^. responseBody . key "name" . _String
@@ -74,13 +79,68 @@ testAddExercise opts = do
   where
     exercises r = r ^. responseBody ^.. values . key "id" . _Integer
 
+listExercises :: Options -> IO [(Integer, T.Text)]
+listExercises opts = do
+  r <- getWith opts (mkUrl "/rest/exercise")
+  return $ r ^. responseBody ^.. values . to nameId
+  where
+    nameId v = (fromJust $ v ^? key "id" . _Integer, v ^. key "name" . _String)
+
+-- Pure but we return in IO in order to assert missing exercises.
+exerciseIdByName :: T.Text -> [(Integer, T.Text)] -> IO Integer
+exerciseIdByName name xs =
+  case find (\(_,n) -> n == name) xs of
+    Nothing -> assertFailure "missing exercise" >> return 0
+    Just v  -> return . fst $ v
+
+addReps :: Options -> Integer -> Integer -> Integer -> Integer -> Assertion
+addReps opts workoutId exerciseId reps weight = do
+  r <- postWith opts (mkUrl "/rest/workout/exercise")
+    [ "workoutId"  := workoutId
+    , "exerciseId" := exerciseId
+    , "reps"       := reps
+    , "weight"     := weight
+    ]
+  Just weight @=? r ^? responseBody . key "weight" . _Integer
+  Just reps   @=? r ^? responseBody . key "reps"   . _Integer
+
+testWorkout :: Options -> Assertion
+testWorkout opts = do
+  exTypes <- listExercises opts
+  r <- postWith opts (mkUrl "/rest/workout") emptyPostParams
+  let workoutId = fromJust $ r ^? responseBody . key "id" . _Integer
+      timestamp = r ^. responseBody . key "time" . _String
+  assertBool "time exists" (T.length timestamp > 0)
+  ex1Id <- exerciseIdByName "chin-ups" exTypes
+  ex2Id <- exerciseIdByName "deadlift" exTypes
+  addReps opts workoutId ex1Id 10 0
+  addReps opts workoutId ex1Id 5 10
+  addReps opts workoutId ex2Id 5 100
+  r <- getWith (opts & param "id" .~ [T.pack . show $ workoutId]) (mkUrl "/rest/workout")
+  let exercises  = r ^. responseBody ^.. key "exercises" . values . to nameReps
+  "chin-ups" @=? (exercises !! 0) ^. _1
+  "deadlift" @=? (exercises !! 1) ^. _1
+  let ex1Sets = (exercises !! 0) ^. _2
+      ex2Sets = (exercises !! 1) ^. _2
+  Just 10  @=? (ex1Sets V.! 0) ^? key "reps"   . _Integer
+  Just 0   @=? (ex1Sets V.! 0) ^? key "weight" . _Integer
+  Just 5   @=? (ex1Sets V.! 1) ^? key "reps"   . _Integer
+  Just 10  @=? (ex1Sets V.! 1) ^? key "weight" . _Integer
+  Just 5   @=? (ex2Sets V.! 0) ^? key "reps"   . _Integer
+  Just 100 @=? (ex2Sets V.! 0) ^? key "weight" . _Integer
+  where
+    nameReps v = (v ^. key "name" . _String,
+                  v ^. key "sets" . _Array)
+
 main :: IO ()
 main =
   defaultMain
   [ testGroup "Require auth fail" requireAuthFail
-  , buildTest $ createUserTests [("Logged in?",    testLoggedInOk)]
-  , buildTest $ loginUserTests  [ ("Logged in?",   testLoggedInOk)
-                                , ("Add exercise", testAddExercise)
+  , buildTest $ createUserTests [("Logged in?", testLoggedInOk)]
+  , buildTest $ loginUserTests  [ ("Logged in?",     testLoggedInOk)
+                                , ("Add exercise 1", testAddExercise "chin-ups" "BW")
+                                , ("Add exercise 2", testAddExercise "deadlift" "W")
+                                , ("Create workout", testWorkout)
                                 ]
   ]
   where
