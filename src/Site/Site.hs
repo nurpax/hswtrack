@@ -14,7 +14,6 @@ import           Control.Concurrent
 import           Control.Monad.Trans (liftIO)
 import           Control.Lens
 import           Data.ByteString (ByteString)
-import qualified Data.Configurator as DC
 import qualified Data.Text as T
 import           Snap.Snaplet.Auth.Backends.SqliteSimple
 import           Snap.Snaplet.Session.Backends.CookieSession
