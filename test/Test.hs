@@ -117,20 +117,19 @@ testWorkout opts = do
   addReps opts workoutId ex1Id 5 10
   addReps opts workoutId ex2Id 5 100
   r <- getWith (opts & param "id" .~ [T.pack . show $ workoutId]) (mkUrl "/rest/workout")
-  let exercises  = r ^. responseBody ^.. key "exercises" . values . to nameReps
-  "chin-ups" @=? (exercises !! 0) ^. _1
-  "deadlift" @=? (exercises !! 1) ^. _1
-  let ex1Sets = (exercises !! 0) ^. _2
-      ex2Sets = (exercises !! 1) ^. _2
+  let exercises l   = r ^. responseBody ^.. key "exercises" . values . l
+  let exerciseNames = exercises (key "name")
+  let exerciseSets  = exercises (key "sets" . _Array)
+  "chin-ups" @=? (exerciseNames !! 0)
+  "deadlift" @=? (exerciseNames !! 1)
+  let ex1Sets = (exerciseSets !! 0)
+      ex2Sets = (exerciseSets !! 1)
   Just 10  @=? (ex1Sets V.! 0) ^? key "reps"   . _Integer
   Just 0   @=? (ex1Sets V.! 0) ^? key "weight" . _Integer
   Just 5   @=? (ex1Sets V.! 1) ^? key "reps"   . _Integer
   Just 10  @=? (ex1Sets V.! 1) ^? key "weight" . _Integer
   Just 5   @=? (ex2Sets V.! 0) ^? key "reps"   . _Integer
   Just 100 @=? (ex2Sets V.! 0) ^? key "weight" . _Integer
-  where
-    nameReps v = (v ^. key "name" . _String,
-                  v ^. key "sets" . _Array)
 
 main :: IO ()
 main =
