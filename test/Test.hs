@@ -1,9 +1,11 @@
-{-# LANGUAGE TemplateHaskell, OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings, ScopedTypeVariables, Rank2Types #-}
 
 import qualified Control.Exception as E
 import           Control.Lens
+import           Data.Aeson (Value)
 import           Data.Aeson.Lens
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
 import           Data.List
 import           Data.Maybe (fromJust)
 import qualified Data.Text as T
@@ -104,6 +106,9 @@ addReps opts workoutId exerciseId reps weight = do
   Just weight @=? r ^? responseBody . key "weight" . _Integer
   Just reps   @=? r ^? responseBody . key "reps"   . _Integer
 
+exercises :: Traversal' (Response LBS.ByteString) Value
+exercises = responseBody . key "exercises" . values
+
 testWorkout :: Options -> Assertion
 testWorkout opts = do
   exTypes <- listExercises opts
@@ -117,9 +122,8 @@ testWorkout opts = do
   addReps opts workoutId ex1Id 5 10
   addReps opts workoutId ex2Id 5 100
   r <- getWith (opts & param "id" .~ [T.pack . show $ workoutId]) (mkUrl "/rest/workout")
-  let exercises l   = r ^. responseBody ^.. key "exercises" . values . l
-  let exerciseNames = exercises (key "name")
-  let exerciseSets  = exercises (key "sets" . _Array)
+  let exerciseSets  = r ^.. exercises . key "sets" . _Array
+  let exerciseNames = r ^.. exercises . key "name" . _String
   "chin-ups" @=? (exerciseNames !! 0)
   "deadlift" @=? (exerciseNames !! 1)
   let ex1Sets = (exerciseSets !! 0)
