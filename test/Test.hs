@@ -2,6 +2,7 @@
 
 import qualified Control.Exception as E
 import           Control.Lens
+import           Control.Monad (void)
 import           Data.Aeson (Value)
 import           Data.Aeson.Lens
 import qualified Data.ByteString as BS
@@ -16,6 +17,8 @@ import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit hiding (TestList, Test)
 
+type Exercise = (Integer, T.Text)
+
 mkUrl :: String -> String
 mkUrl s = "http://localhost:8000" ++ s
 
@@ -29,6 +32,9 @@ passwd = "testpass"
 
 emptyPostParams :: [(BS.ByteString, BS.ByteString)]
 emptyPostParams = []
+
+setParam :: Show a => T.Text -> a -> Options -> Options
+setParam name v = param name .~ [T.pack . show $ v]
 
 -- | Create a user and run a list of subtests with cookies acquired
 -- from the login process.
@@ -89,7 +95,7 @@ listExercises opts = do
     nameId v = (fromJust $ v ^? key "id" . _Integer, v ^. key "name" . _String)
 
 -- Pure but we return in IO in order to assert missing exercises.
-exerciseIdByName :: T.Text -> [(Integer, T.Text)] -> IO Integer
+exerciseIdByName :: T.Text -> [Exercise] -> IO Integer
 exerciseIdByName name xs =
   case find (\(_,n) -> n == name) xs of
     Nothing -> assertFailure "missing exercise" >> return 0
@@ -106,22 +112,35 @@ addReps opts workoutId exerciseId reps weight = do
   Just weight @=? r ^? responseBody . key "weight" . _Integer
   Just reps   @=? r ^? responseBody . key "reps"   . _Integer
 
+deleteSet :: Options -> Integer -> Assertion
+deleteSet opts setId = do
+  let opts' = opts & setParam "id" setId
+  void $ deleteWith opts' (mkUrl "/rest/workout/exercise")
+  return ()
+
 exercises :: Traversal' (Response LBS.ByteString) Value
 exercises = responseBody . key "exercises" . values
 
-testWorkout :: Options -> Assertion
-testWorkout opts = do
-  exTypes <- listExercises opts
+addWorkout :: Options -> [Exercise] -> [(T.Text, [(Integer, Integer)])] -> IO Integer
+addWorkout opts exTypes sets = do
   r <- postWith opts (mkUrl "/rest/workout") emptyPostParams
   let workoutId = fromJust $ r ^? responseBody . key "id" . _Integer
       timestamp = r ^. responseBody . key "time" . _String
   assertBool "time exists" (T.length timestamp > 0)
-  ex1Id <- exerciseIdByName "chin-ups" exTypes
-  ex2Id <- exerciseIdByName "deadlift" exTypes
-  addReps opts workoutId ex1Id 10 0
-  addReps opts workoutId ex1Id 5 10
-  addReps opts workoutId ex2Id 5 100
-  r <- getWith (opts & param "id" .~ [T.pack . show $ workoutId]) (mkUrl "/rest/workout")
+  mapM_ (addSets workoutId) sets
+  return workoutId
+  where
+    addSets workoutId (name, sets) = do
+      exId <- exerciseIdByName name exTypes
+      mapM_ (\(reps, weight) -> addReps opts workoutId exId reps weight) sets
+
+testWorkout :: Options -> Assertion
+testWorkout opts = do
+  exTypes   <- listExercises opts
+  workoutId <- addWorkout opts exTypes [ ("chin-ups", [(10,0), (5, 10)])
+                                       , ("deadlift", [(5, 100)])
+                                       ]
+  r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
   let exerciseSets  = r ^.. exercises . key "sets" . _Array
   let exerciseNames = r ^.. exercises . key "name" . _String
   "chin-ups" @=? (exerciseNames !! 0)
@@ -135,6 +154,39 @@ testWorkout opts = do
   Just 5   @=? (ex2Sets V.! 0) ^? key "reps"   . _Integer
   Just 100 @=? (ex2Sets V.! 0) ^? key "weight" . _Integer
 
+queryWorkoutSetIds :: Options -> Integer -> IO [Integer]
+queryWorkoutSetIds opts workoutId = do
+  r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
+  return $ r ^.. exercises . key "sets" . values . key "id" . _Integer
+
+testSetDelete :: Options -> Assertion
+testSetDelete opts = do
+  exTypes   <- listExercises opts
+  workoutId <- addWorkout opts exTypes [("chin-ups", [(10,0), (5, 10)])]
+  setIds    <- queryWorkoutSetIds opts workoutId
+  2 @=? length setIds
+  deleteSet opts (setIds !! 0)
+  setIds'   <- queryWorkoutSetIds opts workoutId
+  1 @=? length setIds'
+  setIds !! 1 @=? setIds' !! 0
+  deleteSet opts (setIds !! 1)
+  setIds''  <- queryWorkoutSetIds opts workoutId
+  [] @=? setIds''
+
+testSetDelete2 :: Options -> Assertion
+testSetDelete2 opts = do
+  exTypes   <- listExercises opts
+  workoutId <- addWorkout opts exTypes [ ("chin-ups", [(10, 0)])
+                                       , ("deadlift", [(5, 100)])]
+  setIds    <- queryWorkoutSetIds opts workoutId
+  r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
+  let exerciseNames = r ^.. exercises . key "name" . _String
+  ["chin-ups", "deadlift"]  @=? exerciseNames
+  deleteSet opts (setIds !! 0)
+  r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
+  let exerciseNames = r ^.. exercises . key "name" . _String
+  ["deadlift"]  @=? exerciseNames
+
 main :: IO ()
 main =
   defaultMain
@@ -144,6 +196,8 @@ main =
                                 , ("Add exercise 1", testAddExercise "chin-ups" "BW")
                                 , ("Add exercise 2", testAddExercise "deadlift" "W")
                                 , ("Create workout", testWorkout)
+                                , ("Delete sets",    testSetDelete)
+                                , ("Delete sets 2",  testSetDelete2)
                                 ]
   ]
   where
