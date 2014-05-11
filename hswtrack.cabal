@@ -7,13 +7,14 @@ Maintainer:          Janne Hellsten <jjhellst@gmail.com>
 Stability:           Experimental
 Category:            Web
 Build-type:          Simple
-Cabal-version:       >=1.2
+Cabal-version:       >=1.10
 
 Flag development
   Description: Whether to build the server in development (interpreted) mode
   Default: False
 
 Executable hswtrack
+  default-language: Haskell2010
   hs-source-dirs: src, src/Site, src/Model
   main-is: Site/Main.hs
 
@@ -49,19 +50,20 @@ Executable hswtrack
     ghc-options: -threaded -w
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
-                 -fno-warn-orphans -fno-warn-unused-do-bind
+                 -fno-warn-orphans -fno-warn-unused-do-bind -fhpc
 
 test-suite resttest
   default-language: Haskell2010
   type:             exitcode-stdio-1.0
 
   hs-source-dirs: test
-  main-is:        Test.hs
+  main-is:        Main.hs
 
-  ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind
+  ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind -fhpc
 
   build-depends: base
                , aeson
+               , bytestring
                , containers
                , http-client
                , HUnit
