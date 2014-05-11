@@ -44,6 +44,8 @@ testSetWeight opts = do
   1 @=? (length $ r ^.. responseBody . values)
   Just 80  @=? r ^? responseBody . nth 0 . key "weight" . _Double
   Just wId @=? r ^? responseBody . nth 0 . key "id"     . _Integer
+  r <- getWith (opts & param "date" .~ [date]) (mkUrl "/rest/app")
+  Just 80  @=? r ^? responseBody . key "context" . key "weight" . key "weight" . _Double
   void $ deleteWith (opts & setParam "id" wId) (mkUrl "/rest/weight")
   r <- getWeights date (Just 1)
   0 @=? (length $ r ^.. responseBody . values)
