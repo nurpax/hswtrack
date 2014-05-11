@@ -6,18 +6,21 @@ import           Test.Framework.Providers.HUnit
 
 import           Test
 import           Workout
+import           Weight
 
 main :: IO ()
 main =
   defaultMain
   [ testGroup "Require auth fail" requireAuthFail
   , buildTest $ createUserTests [("Logged in?", testLoggedInOk)]
-  , buildTest $ loginUserTests  [ ("Logged in?",     testLoggedInOk)
-                                , ("Add exercise 1", testAddExercise "chin-ups" "BW")
-                                , ("Add exercise 2", testAddExercise "deadlift" "W")
-                                , ("Create workout", testWorkout)
-                                , ("Delete sets",    testSetDelete)
-                                , ("Delete sets 2",  testSetDelete2)
+  , buildTest $ loginUserTests  [ ("Logged in?",       testLoggedInOk)
+                                , ("Add exercise 1",   testAddExercise "chin-ups" "BW")
+                                , ("Add exercise 2",   testAddExercise "deadlift" "W")
+                                , ("Create workout",   testWorkout)
+                                , ("Delete sets",      testSetDelete)
+                                , ("Delete sets 2",    testSetDelete2)
+                                , ("Add note",         testAddNote)
+                                , ("Set/clear weight", testSetWeight)
                                 ]
   ]
   where

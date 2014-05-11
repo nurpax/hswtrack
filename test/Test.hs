@@ -64,5 +64,3 @@ testLoggedInFail url opts = do
       assertBool "error ok" (s ^. statusCode == 403)
     check (Left _)  = assertFailure "unexpected exception caught"
     check (Right _) = assertFailure "req should've failed"
-
-
