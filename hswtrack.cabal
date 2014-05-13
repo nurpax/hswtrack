@@ -50,7 +50,7 @@ Executable hswtrack
     ghc-options: -threaded -w
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
-                 -fno-warn-orphans -fno-warn-unused-do-bind -fhpc
+                 -fno-warn-orphans -fno-warn-unused-do-bind
 
 test-suite resttest
   default-language: Haskell2010
@@ -59,7 +59,7 @@ test-suite resttest
   hs-source-dirs: test
   main-is:        Main.hs
 
-  ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind -fhpc
+  ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind
 
   build-depends: base
                , aeson
