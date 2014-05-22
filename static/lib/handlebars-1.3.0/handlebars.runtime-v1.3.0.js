@@ -1,3 +1,6 @@
+// Begin AMD Wrapper
+define(function(){
+// End AMD Wrapper
 /*!
 
  handlebars v1.3.0
@@ -265,8 +268,8 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
         } else {
           for(var key in context) {
             if(context.hasOwnProperty(key)) {
-              if(data) { 
-                data.key = key; 
+              if(data) {
+                data.key = key;
                 data.index = i;
                 data.first = (i === 0);
               }
@@ -528,3 +531,6 @@ var __module0__ = (function(__dependency1__, __dependency2__, __dependency3__, _
 
   return __module0__;
 })();
+// Begin AMD Wrapper
+return Handlebars; });
+// End AMD Wrapper
