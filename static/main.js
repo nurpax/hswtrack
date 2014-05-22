@@ -8,19 +8,16 @@ requirejs.config({
         underscore: 'lib/underscore-1.6.0/underscore-min',
         router: 'lib/router'
     },
+    hbs: {
+        templateExtension: ".html"
+    },
+    packages: [
+    {
+      name: 'hbs',
+      location: 'lib/requirejs-hbs',
+      main: 'hbs'
+    }],
     shim: {
-        // TODO I don't understand why this is needed here.
-        // Handlebars 1.3 is supposed to work fine with RequireJS but
-        // if I don't add this exports here, Handlebars is not defined
-        // in app/app.js App constructor, even though it's defined as
-        // a dependency.
-        //
-        // I think I should install Handlebars via npm, perhaps that
-        // installer adds the right .amd files for this to work the
-        // right way with requirejs.
-        handlebars: {
-            exports: 'Handlebars'
-        },
         d3: {
             exports: "d3"
         },
