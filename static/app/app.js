@@ -1,6 +1,6 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/workout', 'app/stats'],
-       function($, Handlebars, bootstrap, d3, router, weight, workout, stats) {
+define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/workout', 'app/stats', 'hbs!templates/login', 'hbs!templates/settings'],
+       function($, Handlebars, bootstrap, d3, router, weight, workout, stats, templateLogin, templateSettings) {
     "use strict";
 
     function loadAppContext() {
@@ -29,7 +29,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         else if (url == "login")
             ctx.loginForm = true;
 
-        $("#app-container").html(self.templateLogin(ctx));
+        $("#app-container").html(templateLogin(ctx));
 
         $("form#login").submit(function (e) {
             e.preventDefault();
@@ -58,7 +58,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         var self = this;
         $.when(loadAppContext()).done(
             function (app) {
-                $("#app-container").html(self.templateSettings(app.context));
+                $("#app-container").html(templateSettings(app.context));
             });
     };
 
@@ -79,10 +79,6 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         Handlebars.registerHelper('dateString', function(v, options) {
             return new Handlebars.SafeString((new Date(v)).toLocaleString());
         });
-
-        // Compile templates
-        this.templateSettings = Handlebars.compile($("#settings-template").html());
-        this.templateLogin = Handlebars.compile($("#login-template").html());
 
         // Instruct router to go to the login screen if any latter AJAX
         // call returns "Login required" 403.

@@ -1,0 +1,54 @@
+<div class="col-md-3">
+
+  {{#loginError}}
+  <div class="alert alert-danger alert-dismissable">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+    {{../loginError}}
+  </div>
+  {{/loginError}}
+
+  <div class="well">
+    <form id="login">
+      <div class="form-group row">
+        <div class="col-md-12">
+          <input class="form-control" type="text" id="username" name="login" placeholder="Username" />
+        </div>
+      </div>
+
+      <div class="form-group row">
+        <div class="col-md-12">
+          <input class="form-control" type="password" id="password" name="password" placeholder="Password" />
+        </div>
+      </div>
+
+      {{#if loginForm}}
+      <div class="form-group row">
+        <div class="col-md-12">
+          <label>
+            <input type="checkbox" id="remember" name="remember" value="1">&nbsp;Remember me
+          </label>
+        </div>
+      </div>
+      {{/if}}
+
+      <div class="form-group row">
+        <div class="col-md-12">
+          <button class="btn btn-primary" type="submit">
+            {{#if loginForm}}
+            Login
+            {{else}}
+            Create a New User
+            {{/if}}
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  {{#if loginForm}}
+  <p>Don't have a login yet? <a href="#/new_user">Create a new user</a></p>
+  {{/if}}
+
+</div>
+
