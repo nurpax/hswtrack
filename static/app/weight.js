@@ -1,4 +1,4 @@
-define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model'], function($, Handlebars, _, view, model) {
+define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model', 'hbs!templates/weight', 'hbs!templates/weight-notes'], function($, Handlebars, _, view, model, templateHome, templateNotes) {
     "use strict";
 
     // View workout stats/history
@@ -6,10 +6,6 @@ define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model'], function
         init: function () {
             this._super();
             this.selectedGraphDays = 3*30;
-
-            this.templateHome = Handlebars.compile($("#home-template").html());
-            this.templateNotes = Handlebars.compile($("#notes-template").html());
-
             this.model = new model.WeightCont();
         },
 
@@ -83,7 +79,7 @@ define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model'], function
         renderComments: function(notes)
         {
             var self = this;
-            $("#comments").html(self.templateNotes(notes));
+            $("#comments").html(templateNotes(notes));
 
             // Delete buttons
             $("#comments").each(function () {
@@ -108,7 +104,7 @@ define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model'], function
         renderHome: function() {
             var self = this;
 
-            $("#app-container").html(self.templateHome(self.model.app.context));
+            $("#app-container").html(templateHome(self.model.app.context));
 
             self.model.weights.setUpdateHandler(function (w) { self.renderPlot(w); });
             self.model.notes.setUpdateHandler(function (n) { self.renderComments(n); });
