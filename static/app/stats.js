@@ -1,4 +1,4 @@
-define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebars, _, view) {
+define(['jquery', 'handlebars', 'underscore', 'app/view', 'hbs!templates/stats-main', 'hbs!templates/stats-history', 'hbs!templates/exercise-no-edit'], function($, Handlebars, _, view, templateStatsMain, templateStatsHistory, templateExercise) {
     "use strict";
 
     function loadPastWorkouts () {
@@ -13,8 +13,7 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
     var StatsView = view.View.extend({
         init: function () {
             this._super();
-            this.compileTemplates(['stats-main-template', 'stats-history-template']);
-            this.registerPartials(Handlebars, ['exercise-no-edit-partial']);
+            Handlebars.registerPartial('exerciseNoEdit', templateExercise);
         },
 
         renderPastWorkouts: function (ws) {
@@ -31,8 +30,8 @@ define(['jquery', 'handlebars', 'underscore', 'app/view'], function($, Handlebar
                        });
                    });
 
-            $("#app-container").html(self.templates.statsMain(workouts));
-            $("#history-tab").html(self.templates.statsHistory(workouts));
+            $("#app-container").html(templateStatsMain(workouts));
+            $("#history-tab").html(templateStatsHistory(workouts));
 
             $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
                 var target = $(e.target).attr("href");

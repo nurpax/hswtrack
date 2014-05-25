@@ -208,63 +208,6 @@
   </div>
 </script>
 
-<!-- #/stats views -->
-<script id="exercise-no-edit-partial" type="text/x-handlebars-template">
-  <h4>{{name}}</h4>
-  <table>
-    {{#each sets}}
-    <tr>
-    {{#ifBodyweight ../this}}
-      <td>Set:</td>
-      <td class="text-right">{{reps}}</td>
-      <td>reps</td>
-      {{#if weight}}
-      <td>(+{{weight}} kg)</td>
-      {{else}}
-      <td></td>
-      {{/if}}
-    {{else}}
-      <td>Set:</td>
-      <td class="text-right">{{reps}}</td>
-      <td>&times;</td>
-      <td>{{weight}} kg</td>
-    {{/ifBodyweight}}
-    </tr>
-    {{/each}}
-    {{#ifBodyweight this}}
-    <tr class="reps_total"><td>Total:</td><td>{{totalReps}}</td><td></td></tr>
-    {{/ifBodyweight}}
-  </table>
-</script>
-
-<script id="stats-history-template" type="text/x-handlebars-template">
-  <h2>Past 14 workouts</h2>
-  <div id="workouts">
-    {{#each workouts}}
-    <h3>Workout {{id}} <small>{{{dateString time}}}</small></h3>
-    {{#each exercises}}
-    <div class="exercise">
-      {{> exerciseNoEdit this}}
-    </div>
-    {{/each}}
-    {{/each}}
-  </div>
-</script>
-
-<script id="stats-main-template" type="text/x-handlebars-template">
-  <div class="container">
-    <ul class="nav nav-tabs">
-      <li class="active"><a href="#history-tab" data-toggle="tab">History</a></li>
-      <li><a href="#pr-tab" data-toggle="tab">Personal Records</a></li>
-    </ul>
-    <div class="tab-content">
-      <div class="tab-pane active" id="history-tab">
-      </div>
-      <div class="tab-pane" id="pr-tab">tab2</div>
-    </div>
-  </div>
-</script>
-
 <!-- ------------------------------------------------------------------->
 <!-- End of templates -->
 
