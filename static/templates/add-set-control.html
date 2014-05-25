@@ -1,0 +1,20 @@
+<form class="add-set">
+  <div class="row">
+    <div class="col-xs-4">
+      <input class="reps form-control" type="number" name="reps" placeholder="Reps.." />
+    </div>
+    <div class="col-xs-4">
+      {{#ifBodyweight this}}
+      <div class="collapse-group">
+        <input class="weight collapse form-control" type="number" name="weight"  placeholder="Weight.." />
+        <a id="collapse-weighted" class="btn" href="#">Advanced &raquo;</a>
+      </div>
+      {{else}}
+      <input class="weight form-control" type="number" name="weight"  placeholder="Weight.." />
+      {{/ifBodyweight}}
+    </div>
+    <div class="col-xs-2">
+      <button class="add-set btn btn-default" type="submit">Add Set</button>
+    </div>
+  </div>
+</form>

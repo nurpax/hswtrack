@@ -1,0 +1,23 @@
+<div class="well">
+  <div class="row">
+    <div class="col-md-4"><b>Add a New Exercise</b></div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <select class="select-exercise form-group">
+        <option selected disabled hidden></option>
+        {{#each exerciseTypes}}
+        <option value="{{this.id}}">{{this.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+
+  <div class="add-exercise-sets">
+  </div>
+
+  <div>
+    <label>Favorite exercise missing?</label>&nbsp;<a href="#/workout/add-exercise">Add it!</a>
+  </div>
+</div>
