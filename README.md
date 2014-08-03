@@ -13,6 +13,15 @@ Running unit tests
  1. Start the hswtrack server in test config with: ```cabal run -- -e test```
  2. In another shell, run: ```cabal test```
 
+Building minified Javascript
+----------------------------
+
+```
+npm install -g requirejs
+cd <project_root>
+r.js  -o app.build.js
+```
+
 Tech details
 ----------------
 

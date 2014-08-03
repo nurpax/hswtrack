@@ -14,6 +14,7 @@ import           Control.Concurrent
 import           Control.Monad.Trans (liftIO)
 import           Control.Lens
 import           Data.ByteString (ByteString)
+import qualified Data.Configurator as Cfg
 import qualified Data.Text as T
 import           Snap.Snaplet.Auth.Backends.SqliteSimple
 import           Snap.Snaplet.Session.Backends.CookieSession
@@ -53,30 +54,36 @@ handleNewUser =
 
 
 -- | The application's routes.
-routes :: [(ByteString, Handler App App ())]
-routes = [ ("/rest/login",    handleLoginSubmit)
-         , ("/rest/new_user", handleNewUser)
-         , ("/logout",        handleLogout)
-         , ("/rest/app",      method GET restAppContext)
-         , ("/rest/weights",  restListWeights)
-         , ("/rest/weight",   method POST restSetWeight <|> method DELETE restClearWeight)
-         , ("/rest/notes",    restListNotes)
-         , ("/rest/note",     method POST restAddNote <|> method DELETE restDeleteNote)
-         , ("/rest/exercise", method GET restListExerciseTypes <|> method POST restNewExerciseType)
-         , ("/rest/workout/exercise", method POST restAddExerciseSet <|> method DELETE restDeleteExerciseSet)
-         , ("/rest/workout",  method POST restNewWorkout)
-         , ("/rest/workout",  method GET restQueryWorkouts)
-         , ("/rest/stats/workout",
-                              method GET restQueryWorkoutHistory)
-         , ("/",              serveFile "static/index.html")
-         , ("/favicon.ico",   serveFile "static/favicon.ico")
-         , ("/static",        serveDirectory "static")
-         ]
+routes :: String -> [(ByteString, Handler App App ())]
+routes staticAssetDir =
+  [ ("/rest/login",    handleLoginSubmit)
+  , ("/rest/new_user", handleNewUser)
+  , ("/logout",        handleLogout)
+  , ("/rest/app",      method GET restAppContext)
+  , ("/rest/weights",  restListWeights)
+  , ("/rest/weight",   method POST restSetWeight <|> method DELETE restClearWeight)
+  , ("/rest/notes",    restListNotes)
+  , ("/rest/note",     method POST restAddNote <|> method DELETE restDeleteNote)
+  , ("/rest/exercise", method GET restListExerciseTypes <|> method POST restNewExerciseType)
+  , ("/rest/workout/exercise", method POST restAddExerciseSet <|> method DELETE restDeleteExerciseSet)
+  , ("/rest/workout",  method POST restNewWorkout)
+  , ("/rest/workout",  method GET restQueryWorkouts)
+  , ("/rest/stats/workout", method GET restQueryWorkoutHistory)
+  , ("/",              serveFile (staticAssetDir ++ "/index.html"))
+  , ("/favicon.ico",   serveFile (staticAssetDir ++ "/favicon.ico"))
+  , ("/static",        serveDirectory staticAssetDir)
+  ]
 
 -- | The application initializer.
 app :: SnapletInit App App
 app = makeSnaplet "app" "An snaplet example application." Nothing $ do
-    addRoutes routes
+    -- Allow specifying an alternate '/static' directory for
+    -- html/js static assets.  This way we can point the '/static'
+    -- route to a minified JS built application.
+    cc <- getSnapletUserConfig
+    staticAssetDir <- liftIO $ Cfg.lookupDefault "static" cc "static-asset-dir"
+
+    addRoutes (routes staticAssetDir)
     s <- nestSnaplet "sess" sess $
            initCookieSessionManager "site_key.txt" "sess" (Just 3600)
 

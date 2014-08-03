@@ -1,5 +1,6 @@
 #!/bin/bash
+set -e
 
 # synchronize build results to a remote server for deployment
-
-rsync -rtvz .cabal-sandbox/bin snaplets static $1
+r.js -o app.build.js
+rsync -rtvz .cabal-sandbox/bin prod.cfg snaplets static build-js $1
