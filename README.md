@@ -7,6 +7,12 @@ Here's a screenshot taken on a Nexus 5:
 
 <a href="http://imgur.com/3kgnvm7"><img src="http://i.imgur.com/3kgnvm7l.png" title="Hosted by imgur.com"/></a>
 
+Running unit tests
+------------------
+
+ 1. Start the hswtrack server in test config with: ```cabal run -- -e test```
+ 2. In another shell, run: ```cabal test```
+
 Tech details
 ----------------
 
