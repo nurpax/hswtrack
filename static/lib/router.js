@@ -1,156 +1,81 @@
-/* This little package sets up a router */
 
-window.router = {
-		options: {
-			hashFormat: '#',
-			pruneFilename: true,
-			interval: true,
-			indexFilename: 'index.html'
-		},
-		hashMatch: null,
-		interval: null,
-		paths: {},
-		current_hash: '666',
-		start: function(options) {
-		
-			// incorporate parameters into objet configuration
-			for (var o in options) {
-				this.options[o] = options[o];
-			}
-			
-			// set up hash pattern
-			this.hashMatch = new RegExp('^'+this.options.hashFormat);
+/*
+Copyright (C) <2012> <haithem bel haj>
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
-			// set base url
-			if (this.options.pruneFilename) {
-				this.base_url = window.location.pathname.replace(/[^\/]*$/, "");
-			}
+(function() {
 
-			// if we're going to use the automatic hash check instead of binding click handlers,
-			// do that!
-			if (this.options.interval && !this.interval) {
-				this.interval = setInterval(function() { router.checkURL(); },200);
-			}
-			
-			// fire up the router by checking current URL
-			this.checkURL();
-		},
-		route: function(hash) {
-			for (path in this.paths) {
-				var pattern = path.replace(/\//g,"\\/");
-				pattern = new RegExp('^'+pattern+'$','i');
-				var matches = hash.match(pattern)
-				if (matches!=null) {
-					matches.shift();
-					var func = this.paths[path];
-					func.call(null,matches);					
-					return true;
-				}
-			}
-			
-			if (this.paths['404']) {
-				var func = this.paths['404'];
-				func.call(null,hash);
-				return true;
-			}			
-		},
-		checkURL: function() {
-			var hash = window.location.hash;
-			var href = window.location.pathname;
-			var atRoot = true;
+  window.Router = (function() {
 
+    Router.namedParam = /:\w+/g;
 
-			if (this.base_url!=href) {
-				atRoot = false;		
-				if (hash=='' || !hash) {
-					hash = href.replace(this.base_url,'');
-					if (hash[0]!='/') {
-						hash = '/'+hash;
-					}
-					// make sure index.html is the same as /
-					if (hash == '/'+this.options.indexFilename) {
-						hash = '';
-						atRoot = true;
-					}
+    Router.splatParam = /\*\w+/g;
 
-				}
-			}
-			
-			
-			if (atRoot && !hash) { hash ='/'; }
+    Router.prototype.trigger = true;
 
-			// normalize hash so it matches url strings
-			if (hash.match(this.hashMatch)) {
-				hash = hash.substr(this.options.hashFormat.length,hash.length);
-			}
+    function Router(routes) {
+      var _this = this;
+      this.routes = routes != null ? routes : {};
+      History.Adapter.bind(window, 'statechange', function() {
+        return _this.checkRoutes(History.getState());
+      });
+    }
 
-			if (hash!=this.current_hash) {
-			
-				// if user is at a URL that is not the root url
-				// but has navigated to a hash on that sub-url within the app,
-				// make it look like they're actually at the root of the app.
-				// example: mydomain.com/permalink.html#home -> mydomain.com/#home
-				if (!atRoot && hash!='') {
-					if (history.replaceState) {
-						history.replaceState(null,null,this.base_url+hash.substr(1,hash.length));
-					} else {
-						window.location = this.base_url+this.options.hashFormat+hash;
-					}
-				}
+    Router.prototype.route = function(route, callback) {
+      route = route.replace(Router.namedParam, '([^\/]+)').replace(Router.splatParam, '(.*?)');
+      return this.routes["^" + route + "$"] = callback;
+    };
 
-				this.current_hash = hash;
+    Router.prototype.checkRoutes = function(state) {
+      var callback, regex, regexText, url, _ref;
+      if (this.trigger) {
+        _ref = this.routes;
+        for (regexText in _ref) {
+          callback = _ref[regexText];
+          regex = new RegExp(regexText);
+          url = state.data.url || state.hash;
+          if (regex.test(url)) callback.apply(window, regex.exec(url).slice(1));
+        }
+      }
+      return this.trigger = true;
+    };
 
-				this.route(hash);				
-			}	
-		},	
-		// accepts either a path and a callback
-		// or an array of paths mapped to callbacks
-		add: function(path,callback) {
-			if (typeof path == 'object') {
-				for (var p in path) {
-					this.paths[p] = path[p];
-				}
-			} else {
-				this.paths[path]=callback;
-			}
-		},
-		goto: function(path) {
-			if (path.match(this.hashMatch)) {
-				path = path.substr(this.options.hashFormat.length,path.length);
-			}
-			if (path.match(/\:\/\//)) {
-				return false;
-			}
-			// make sure paths are formatted like absolute links
-			if (path[0] != '/') {
-				path = '/' + path;
-			}
-			if (this.route(path)) {
-				if (history.pushState) {
-					if (this.base_url[this.base_url.length-1]=='/') {
-						url = this.base_url + path.substr(1,path.legth);
-					} else {
-						url = this.base_url + path;
-					}
+    Router.prototype.navigate = function(url, trigger, replace, name) {
+      if (trigger == null) trigger = true;
+      if (replace == null) replace = false;
+      if (name == null) name = null;
+      this.trigger = trigger;
+      if (replace) {
+        return History.replaceState({
+          'url': url
+        }, null, url);
+      } else {
+        return History.pushState({
+          'url': url
+        }, null, url);
+      }
+    };
+    
+    Router.prototype.start = function(url) {
+      var stateObj = {};
+      if (url != null) stateObj = {data: {url: url}};
+      else stateObj = History.getState();
+      return this.checkRoutes(stateObj);
+    };
+    
+    Router.prototype.go = function(num) {
+      return History.go(num);
+    };
 
-		
-					// reset hash so we don't trigger a change.
-					this.current_hash=path;
-					
-					// push this url onto the history stack.
-					history.pushState(null,null,url);
+    Router.prototype.back = function() {
+      return History.back();
+    };
 
-				} else {
-					// no pushstate,
-					// so translate this into a hash url instead.
-					url = this.base_url+this.options.hashFormat+path;
-					
-					// setting the location will trigger the router
-					window.location = url;
-				}
-				return true;
-			} else {
-				return false;
-			}
-		}
-};
+    return Router;
+
+  })();
+
+}).call(this);
