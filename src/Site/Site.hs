@@ -69,9 +69,9 @@ routes staticAssetDir =
   , ("/rest/workout",  method POST restNewWorkout)
   , ("/rest/workout",  method GET restQueryWorkouts)
   , ("/rest/stats/workout", method GET restQueryWorkoutHistory)
-  , ("/",              serveFile (staticAssetDir ++ "/index.html"))
   , ("/favicon.ico",   serveFile (staticAssetDir ++ "/favicon.ico"))
   , ("/static",        serveDirectory staticAssetDir)
+  , ("/",              serveFile (staticAssetDir ++ "/index.html"))
   ]
 
 -- | The application initializer.

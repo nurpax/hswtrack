@@ -12,11 +12,12 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
     }
 
     function App() {
+        this.router = new Router();
     }
 
     App.prototype.checkLogin = function(err) {
         if (err.status == 403) {
-            router.goto("/login");
+            this.router.navigate("/login");
         }
     };
 
@@ -40,7 +41,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
                          if (!resp.loggedIn) {
                              self.renderLoginScreen(resp, url);
                          } else {
-                             router.goto("/");
+                             self.router.navigate("/");
                          }
                      }});
         });
@@ -91,15 +92,15 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         var w  = new workout.WorkoutView();
         var s  = new stats.StatsView();
 
-        router.add("/",         function()  { weightView.render(); });
-        router.add("/workout",  function () { w.render(); });
-        router.add("/workout/add-exercise",
+        self.router.route("/",         function()  { weightView.render(); });
+        self.router.route("/workout",  function () { w.render(); });
+        self.router.route("/workout/add-exercise",
                    function () { et.render(); });
-        router.add("/stats",    function () { s.render(); });
-        router.add("/settings", function()  { self.renderSettings(); });
-        router.add("/login",    function()  { self.renderLogin(); });
-        router.add("/new_user", function()  { self.renderNewUser(); });
-        router.start();
+        self.router.route("/stats",    function () { s.render(); });
+        self.router.route("/settings", function()  { self.renderSettings(); });
+        self.router.route("/login",    function()  { self.renderLogin(); });
+        self.router.route("/new_user", function()  { self.renderNewUser(); });
+        self.router.start();
     };
 
     // export

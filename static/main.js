@@ -6,6 +6,8 @@ requirejs.config({
         bootstrap: 'lib/bootstrap-3.0.0/js/bootstrap.min',
         handlebars: 'lib/handlebars-1.3.0/handlebars-v1.3.0',
         underscore: 'lib/underscore-1.6.0/underscore-min',
+        history: 'lib/history',
+        history_adapter: 'lib/history.adapter.native',
         router: 'lib/router'
     },
     hbs: {
@@ -24,6 +26,16 @@ requirejs.config({
         bootstrap: ['jquery'],
         router: {
             exports: "router"
+        },
+        history: {
+            exports: "History"
+        },
+        history_adapter: {
+            exports: "History.Adapter"
+        },
+        router: {
+            deps: ['history', 'history_adapter'],
+            exports: "Router"
         },
     }
 });
