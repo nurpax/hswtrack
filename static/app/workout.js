@@ -164,7 +164,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
         render: function (id) {
             var self = this;
             self.model.setUpdateHandler(function (c) { self.renderWorkouts(c); });
-            self.model.load();
+            self.model.load(id);
         }
 
     });

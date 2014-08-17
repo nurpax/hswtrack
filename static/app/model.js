@@ -42,6 +42,14 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         });
     }
 
+    function loadWorkout(id) {
+        return $.ajax({
+            type: "GET",
+            url: "/rest/workout",
+            data: { id: id }
+        });
+    }
+
     /*--------------------------------------------------------------*/
     var ModelBase = Class.extend({
         setUpdateHandler: function (cb) {
@@ -300,13 +308,23 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
             this.workouts = _.map(ws, function (w) { return new Workout(w); });
         },
 
-        load: function () {
+        load: function (id) {
             var self = this;
-            $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
-                self.setWorkouts(ws[0]);
-                self.exerciseTypes = new ExerciseTypes(es[0]);
-                self.update();
-            });
+
+            // If no 'id' specified, load today's workouts
+            if (!id) {
+                $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
+                    self.setWorkouts(ws[0]);
+                    self.exerciseTypes = new ExerciseTypes(es[0]);
+                    self.update();
+                });
+            } else {
+                $.when(loadWorkout(id), loadExerciseTypes()).done(function (w, es) {
+                    self.setWorkouts([w[0]]);
+                    self.exerciseTypes = new ExerciseTypes(es[0]);
+                    self.update();
+                });
+            }
         },
 
         newWorkout: function () {
