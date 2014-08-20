@@ -42,8 +42,8 @@ define(['jquery', 'handlebars', 'underscore', 'app/view', 'hbs!templates/stats-m
         render: function () {
             var self = this;
 
-            $.when(loadPastWorkouts()).done(function (ws, es) {
-                self.renderPastWorkouts(ws);
+            $.when(loadPastWorkouts()).done(function (ws) {
+                self.renderPastWorkouts(ws.payload);
             });
         }
     });

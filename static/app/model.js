@@ -82,7 +82,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         load: function (days) {
             var self = this;
             $.when(loadWeights(days)).done(function (w) {
-                self.weights = w;
+                self.weights = w.payload;
                 self.update();
             });
         }
@@ -111,7 +111,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                      type: "POST",
                      data: { text: text },
                      success: function (resp) {
-                         self.notes.push(resp);
+                         self.notes.push(resp.payload);
                          self.update();
                      }
                    });
@@ -127,9 +127,9 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
             var self = this;
 
             $.when(loadAppContext(), loadWeights(selectedGraphDays), loadNotes()).done(function (a, w, n) {
-                self.app     = a[0];
-                self.weights = new Weights(w[0]);
-                self.notes   = new Notes(n[0]);
+                self.app     = a[0].payload;
+                self.weights = new Weights(w[0].payload);
+                self.notes   = new Notes(n[0].payload);
                 self.update();
             });
         },
@@ -141,8 +141,9 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                 url: "/rest/weight",
                 data: { weight: newWeight },
                 success: function (r) {
-                    self.app.context.weight = r;
-                    self.weights.addWeight(r);
+                    var weight = r.payload;
+                    self.app.context.weight = weight;
+                    self.weights.addWeight(weight);
                     self.update();
                 }
             });
@@ -189,7 +190,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         load: function() {
             var self = this;
             $.when(loadExerciseTypes()).done(function (es) {
-                self.exerciseTypes = sortExerciseTypes(es);
+                self.exerciseTypes = sortExerciseTypes(es.payload);
                 self.update();
             });
         },
@@ -204,7 +205,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                       type: "POST",
                       data: data,
                       success: function (resp) {
-                          self.exerciseTypes.push(resp);
+                          self.exerciseTypes.push(resp.payload);
                           self.exerciseTypes = sortExerciseTypes(self.exerciseTypes);
                           self.update();
                       }
@@ -228,7 +229,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                      type: "POST",
                      data: params,
                      success: function (resp) {
-                         self.sets.push(resp);
+                         self.sets.push(resp.payload);
                          cb();
                      }
                    });
@@ -297,6 +298,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         init: function () {
             this.workouts      = [];
             this.exerciseTypes = [];
+            this.readOnly      = false;
         },
 
         update: function () {
@@ -314,14 +316,16 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
             // If no 'id' specified, load today's workouts
             if (!id) {
                 $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
-                    self.setWorkouts(ws[0]);
-                    self.exerciseTypes = new ExerciseTypes(es[0]);
+                    self.readOnly = !ws[0].loggedIn;
+                    self.setWorkouts(ws[0].payload);
+                    self.exerciseTypes = new ExerciseTypes(es[0].payload);
                     self.update();
                 });
             } else {
                 $.when(loadWorkout(id), loadExerciseTypes()).done(function (w, es) {
-                    self.setWorkouts([w[0]]);
-                    self.exerciseTypes = new ExerciseTypes(es[0]);
+                    self.readOnly = !w[0].loggedIn;
+                    self.setWorkouts([w[0].payload]);
+                    self.exerciseTypes = new ExerciseTypes(es[0].payload);
                     self.update();
                 });
             }
@@ -333,7 +337,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                       type: "POST",
                       data: [],
                       success: function (resp) {
-                          var w = new Workout(resp);
+                          var w = new Workout(resp.payload);
                           self.workouts.push(w);
                           self.update();
                       }

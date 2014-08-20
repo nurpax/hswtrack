@@ -29,7 +29,7 @@ import           Control.Applicative
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
 import           Control.Monad.Trans.Either
-import           Data.Aeson
+import           Data.Aeson hiding (json)
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -130,36 +130,27 @@ restLoginError :: MonadSnap m => T.Text -> m ()
 restLoginError e =
   writeJSON (AppContext False (Just e) Nothing)
 
--- | Run actions with a logged in user or go back to the login screen
-requireLoggedInUser :: (Model.User -> EitherT String H (H ())) -> H ()
-requireLoggedInUser action = with auth currentUser >>= go
+loginReqdResponse :: ToJSON a => (User -> EitherT HttpError H a) -> H ()
+loginReqdResponse action = with auth currentUser >>= go
   where
     go Nothing  =
       modifyResponse $ setResponseStatus 403 "Login required"
 
-    go (Just u) = logRunEitherT $ do
-      uid  <- tryJust "withLoggedInUser: missing uid" (userId u)
-      uid' <- hoistEither (reader T.decimal (unUid uid))
-      action (Model.User uid' (userLogin u))
-
-
-jsonResponse :: ToJSON a => (Model.User -> EitherT String H a) -> H ()
-jsonResponse action = requireLoggedInUser respond
-  where
-    respond user = writeJSON <$> action user
-
-voidResponse :: (Model.User -> EitherT String H a) -> H ()
-voidResponse action = requireLoggedInUser (\u -> action u >> return (return ()))
+    go (Just u) = runHttpErrorEitherT $ do
+      uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
+      uid' <- hoistHttpError (reader T.decimal (unUid uid))
+      json <- toJSON <$> action (Model.User uid' (userLogin u))
+      return . writeJSON . wrapPayload (Just uid) $ json
 
 -- Get requested date either from GET params or return today's time if not specified.
 -- FIXME: at some point we need to decide how to deal with timezones here
-getToday :: EitherT String H UTCTime
+getToday :: EitherT HttpError H UTCTime
 getToday = do
   today <- maybeGetTextParam "date"
   case today of
     Just t  -> do
       let t' = parseTime defaultTimeLocale "%Y-%m-%d" . T.unpack $ t
-      tryJust "invalid GET date format" t'
+      tryJust (badReq "invalid GET date format") t'
     Nothing -> liftIO getCurrentTime
 
 -- Every page render calls this handler to get an "app context".  This
@@ -167,7 +158,7 @@ getToday = do
 -- his name, etc.  This is used on client-side to implement login
 -- screen, among other things.
 restAppContext :: H ()
-restAppContext = jsonResponse get
+restAppContext = loginReqdResponse get
   where
     get user@(Model.User _ login) = do
       today <- getToday
@@ -179,23 +170,23 @@ restAppContext = jsonResponse get
       return $ AppContext True Nothing (Just (LoggedInContext login weight options))
 
 restClearWeight :: H ()
-restClearWeight = voidResponse get
+restClearWeight = loginReqdResponse clear
   where
-    get user = do
+    clear user = do
       weightId <- RowId <$> getInt64Param "id"
       lift $ withDb $ \conn -> Model.deleteWeight conn user weightId
 
 restSetWeight :: H ()
-restSetWeight = jsonResponse get
+restSetWeight = loginReqdResponse set
   where
-    get user = do
+    set user = do
       today  <- getToday
       weight <- getDoubleParam "weight"
       lift $ withDb $ \conn -> do
         Model.setWeight conn user today weight
 
 restListWeights :: H ()
-restListWeights = method GET (jsonResponse get)
+restListWeights = method GET (loginReqdResponse get)
   where
     get user = do
       today     <- getToday
@@ -203,7 +194,7 @@ restListWeights = method GET (jsonResponse get)
       lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
 
 restAddNote :: H ()
-restAddNote = jsonResponse get
+restAddNote = loginReqdResponse get
   where
     get user = do
       today    <- getToday
@@ -211,14 +202,14 @@ restAddNote = jsonResponse get
       lift $ withDb $ \conn -> Model.addNote conn user today noteText
 
 restDeleteNote :: H ()
-restDeleteNote = voidResponse get
+restDeleteNote = loginReqdResponse get
   where
     get user = do
       noteId <- getIntParam "id"
       lift $ withDb $ \conn -> Model.deleteNote conn user noteId
 
 restListNotes :: H ()
-restListNotes = method GET (jsonResponse get)
+restListNotes = method GET (loginReqdResponse get)
   where
     get user = do
       today <- getToday
@@ -227,27 +218,46 @@ restListNotes = method GET (jsonResponse get)
 ----------------------------------------------------------------------
 -- Workout related AJAX entry points
 
-restListExerciseTypes :: H ()
-restListExerciseTypes = jsonResponse get
+wrapPayload :: Maybe UserId -> Value -> Value
+wrapPayload Nothing v =
+  object [ "loggedIn" .= False
+         , "payload"  .= v
+         ]
+wrapPayload (Just _) v =
+  object [ "loggedIn" .= True
+         , "payload"  .= v
+         ]
+
+anonResponse :: ToJSON a => EitherT HttpError H a -> H ()
+anonResponse action = do
+  with auth currentUser >>= \u -> runHttpErrorEitherT $ do
+    j <- action
+    go j u
   where
-    get _user =
-      lift $ withDb $ \conn -> Model.queryExercises conn
+    go p Nothing  = do
+      return . writeJSON $ wrapPayload Nothing (toJSON p)
+
+    go p (Just u) = do
+      uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
+      return . writeJSON $ wrapPayload (Just uid) (toJSON p)
+
+restListExerciseTypes :: H ()
+restListExerciseTypes = anonResponse $ do
+  lift $ withDb $ \conn -> Model.queryExercises conn
 
 -- TODO need to check for dupes by lower case name here, and return
 -- error if already exists
 restNewExerciseType :: H ()
-restNewExerciseType = jsonResponse put
-  where
-    put _user = do
-      name <- getTextParam "name"
-      ty   <- getTextParam "type" >>= hoistEither . textToExerciseType
-      lift $ withDb $ \conn ->
-        Model.addExercise conn name ty
+restNewExerciseType = loginReqdResponse $ \_user -> do
+  name <- getTextParam "name"
+  ty   <- getTextParam "type" >>= hoistHttpError . textToExerciseType
+  lift $ withDb $ \conn ->
+    Model.addExercise conn name ty
 
 restQueryWorkouts :: H ()
 restQueryWorkouts = do
   wrkId <- getParam "id"
-  maybe (jsonResponse listWorkouts) (jsonResponse . oneWorkout) wrkId
+  maybe (loginReqdResponse listWorkouts) (loginReqdResponse . oneWorkout) wrkId
   where
     oneWorkout id_ user = do
       workoutId_ <- parseInt64 . T.decodeUtf8 $ id_
@@ -258,16 +268,16 @@ restQueryWorkouts = do
       lift $ withDb $ \conn -> Model.queryTodaysWorkouts conn user today
 
 restNewWorkout :: H ()
-restNewWorkout = jsonResponse new
+restNewWorkout = loginReqdResponse new
   where
     new user = do
       today <- getToday
       lift $ withDb $ \conn -> Model.createWorkout conn user today
 
 restAddExerciseSet :: H ()
-restAddExerciseSet = jsonResponse get
+restAddExerciseSet = loginReqdResponse put
   where
-    get user = do
+    put user = do
       workoutId_  <- RowId <$> getInt64Param "workoutId"
       exerciseId_ <- RowId <$> getInt64Param "exerciseId"
       reps        <- getIntParam "reps"
@@ -276,15 +286,15 @@ restAddExerciseSet = jsonResponse get
         Model.addExerciseSet conn user workoutId_ exerciseId_ reps weight
 
 restDeleteExerciseSet :: H ()
-restDeleteExerciseSet = voidResponse get
+restDeleteExerciseSet = loginReqdResponse del
   where
-    get user = do
+    del user = do
       setId_ <- RowId <$> getInt64Param "id"
       lift $ withDb $ \conn ->
         Model.deleteExerciseSet conn user setId_
 
 restQueryWorkoutHistory :: H ()
-restQueryWorkoutHistory = jsonResponse $ \user -> do
+restQueryWorkoutHistory = loginReqdResponse $ \user -> do
   limit <- getIntParam "limit"
   today <- getToday
   lift $ withDb $ \conn -> Model.queryPastWorkouts conn user today limit

@@ -144,6 +144,13 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
             });
         },
 
+        renderWorkoutReadOnly: function (workout, elt) {
+            var self = this;
+
+            var c = { exercises: workout.getExercises() };
+            $(elt).html(templateWorkout(c));
+        },
+
         renderWorkouts: function (workoutCont) {
             var self = this;
             var workouts = { workouts: workoutCont.getWorkouts() };
@@ -153,7 +160,13 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
             $(".workout").each(function (workoutIdx) {
                 var workoutElt = this;
                 var workout    = workouts.workouts[workoutIdx];
-                workout.setUpdateHandler(function (w) { self.renderWorkout(w, workoutElt); });
+
+                workout.setUpdateHandler(function (w) {
+                    if (self.readOnly)
+                        self.renderWorkoutOnly(w, workoutElt);
+                    else
+                        self.renderWorkout(w, workoutElt);
+                });
             });
 
             $("button#new-workout").click(function (elt) {

@@ -18,25 +18,28 @@ import           Test
 
 type Exercise = (Integer, T.Text)
 
+respPayload :: Traversal' (Response LBS.ByteString) Value
+respPayload = responseBody . key "payload"
+
 testAddExercise :: T.Text -> T.Text -> Options -> Assertion
 testAddExercise name ty opts = do
   r <- postWith opts (mkUrl "/rest/exercise") ["name" := name, "type" := ty]
   -- Verify that the newly created object matches creation params
-  name @=? r ^. responseBody . key "name" . _String
-  ty   @=? r ^. responseBody . key "type" . _String
+  name @=? r ^. respPayload . key "name" . _String
+  ty   @=? r ^. respPayload . key "type" . _String
   -- This is test code, so it's OK if we fail the below non-exhaustive
   -- pattern match
-  let (Just oid) = r ^? responseBody . key "id" . _Integer
+  let (Just oid) = r ^? respPayload . key "id" . _Integer
   -- Verify that the object ended up in the global list of exercises
   r <- getWith opts (mkUrl "/rest/exercise")
   assertBool "oid should be in list" (oid `elem` exercises r)
   where
-    exercises r = r ^.. responseBody . values . key "id" . _Integer
+    exercises r = r ^.. respPayload . values . key "id" . _Integer
 
 listExercises :: Options -> IO [(Integer, T.Text)]
 listExercises opts = do
   r <- getWith opts (mkUrl "/rest/exercise")
-  return $ r ^.. responseBody . values . to nameId
+  return $ r ^.. respPayload . values . to nameId
   where
     nameId v = (fromJust $ v ^? key "id" . _Integer, v ^. key "name" . _String)
 
@@ -55,8 +58,8 @@ addReps opts workoutId exerciseId reps weight = do
     , "reps"       := reps
     , "weight"     := weight
     ]
-  Just weight @=? r ^? responseBody . key "weight" . _Integer
-  Just reps   @=? r ^? responseBody . key "reps"   . _Integer
+  Just weight @=? r ^? respPayload . key "weight" . _Integer
+  Just reps   @=? r ^? respPayload . key "reps"   . _Integer
 
 deleteSet :: Options -> Integer -> Assertion
 deleteSet opts setId = do
@@ -65,13 +68,13 @@ deleteSet opts setId = do
   return ()
 
 exercises :: Traversal' (Response LBS.ByteString) Value
-exercises = responseBody . key "exercises" . values
+exercises = respPayload . key "exercises" . values
 
 addWorkout :: Options -> [Exercise] -> [(T.Text, [(Integer, Integer)])] -> IO Integer
 addWorkout opts exTypes sets = do
   r <- postWith opts (mkUrl "/rest/workout") emptyPostParams
-  let workoutId = fromJust $ r ^? responseBody . key "id" . _Integer
-      timestamp = r ^. responseBody . key "time" . _String
+  let workoutId = fromJust $ r ^? respPayload . key "id" . _Integer
+      timestamp = r ^. respPayload . key "time" . _String
   assertBool "time exists" (T.length timestamp > 0)
   mapM_ (addSets workoutId) sets
   return workoutId

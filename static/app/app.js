@@ -59,7 +59,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         var self = this;
         $.when(loadAppContext()).done(
             function (app) {
-                $("#app-container").html(templateSettings(app.context));
+                $("#app-container").html(templateSettings(app.payload.context));
             });
     };
 

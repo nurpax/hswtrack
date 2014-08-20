@@ -2,8 +2,9 @@
 
 module Site.Util (
     reader
-  , logFail
-  , logRunEitherT
+  , runHttpErrorEitherT
+  , hoistHttpError
+  , badReq
   , parseDouble
   , parseInt64
   , tryGetParam
@@ -15,6 +16,7 @@ module Site.Util (
   , withDb
   , writeJSON
   , module X
+  , HttpError(..)
   ) where
 
 ------------------------------------------------------------------------------
@@ -36,6 +38,8 @@ import           Snap.Snaplet.SqliteSimple
 import           Site.Application as X
 ------------------------------------------------------------------------------
 
+data HttpError = HttpError Int String
+
 type H = Handler App App
 
 -- | Discard anything after this and return given status code to HTTP
@@ -46,10 +50,6 @@ finishEarly code str = do
   modifyResponse $ addHeader "Content-Type" "text/plain"
   writeBS str
   getResponse >>= finishWith
-
--- | Finish early with error code 400
-badReq :: MonadSnap m => ByteString -> m b
-badReq = finishEarly 400
 
 -- | Mark response as 'application/json'
 jsonResponse :: MonadSnap m => m ()
@@ -74,50 +74,49 @@ reader p s =
     Right (_, _) -> Left "readParser: input not exhausted"
     Left e -> Left e
 
--- | Log Either Left values or run the Handler action.  To be used in
--- situations where to user shouldn't see an error (either due to it
--- being irrelevant or due to security) but we want to leave a trace
--- of the error and finish with a HTTP error code 400.
-logFail :: Either String (H ()) -> H ()
-logFail = either failReq id
+runHttpErrorEitherT :: EitherT HttpError H (H ()) -> H ()
+runHttpErrorEitherT e = runEitherT e >>= either err id
   where
-    failReq msg = do
-      let e = T.encodeUtf8 . T.pack $ msg
-      logError e
-      badReq e
+    err (HttpError errCode msg) = do
+      let m = T.encodeUtf8 . T.pack $ msg
+      logError m
+      finishEarly errCode m
 
+badReq :: String -> HttpError
+badReq msg = HttpError 400 msg
 
-logRunEitherT :: EitherT String H (H ()) -> H ()
-logRunEitherT e = runEitherT e >>= logFail
+hoistHttpError :: Monad m => Either String a -> EitherT HttpError m a
+hoistHttpError (Left m)  = hoistEither . Left . badReq $ m
+hoistHttpError (Right v) = hoistEither . Right $ v
 
-parseDouble :: T.Text -> EitherT String H Double
+parseDouble :: T.Text -> EitherT HttpError H Double
 parseDouble t =
-  hoistEither (reader T.rational t)
+  hoistHttpError (reader T.rational t)
 
-parseInt64 :: T.Text -> EitherT String H Int64
-parseInt64 t = hoistEither (reader T.decimal t)
+parseInt64 :: T.Text -> EitherT HttpError H Int64
+parseInt64 t = hoistHttpError (reader T.decimal t)
 
-tryGetParam :: MonadSnap m => ByteString -> EitherT String m ByteString
+tryGetParam :: MonadSnap m => ByteString -> EitherT HttpError m ByteString
 tryGetParam p =
-  lift (getParam p) >>= tryJust ("missing get param '"++ show p ++"'")
+  lift (getParam p) >>= tryJust (badReq $ "missing get param '"++ show p ++"'")
 
-getIntParam :: ByteString -> EitherT String H Int
+getIntParam :: ByteString -> EitherT HttpError H Int
 getIntParam n =
-  tryGetParam n >>= \p -> hoistEither (reader T.decimal . T.decodeUtf8 $ p)
+  tryGetParam n >>= \p -> hoistHttpError (reader T.decimal . T.decodeUtf8 $ p)
 
-getInt64Param :: ByteString -> EitherT String H Int64
+getInt64Param :: ByteString -> EitherT HttpError H Int64
 getInt64Param n =
   getTextParam n >>= \p -> parseInt64 p
 
-getDoubleParam :: ByteString -> EitherT String H Double
+getDoubleParam :: ByteString -> EitherT HttpError H Double
 getDoubleParam n =
   getTextParam n >>= \p -> parseDouble p
 
-getTextParam :: ByteString -> EitherT String H T.Text
+getTextParam :: ByteString -> EitherT HttpError H T.Text
 getTextParam n =
   tryGetParam n >>= \p -> return . T.decodeUtf8 $ p
 
-maybeGetTextParam :: ByteString -> EitherT String H (Maybe T.Text)
+maybeGetTextParam :: ByteString -> EitherT HttpError H (Maybe T.Text)
 maybeGetTextParam n = do
   p <- lift $ getParam n
   return $ fmap T.decodeUtf8 p

@@ -30,7 +30,6 @@ main =
     authReqd = [ "/rest/app"
                , "/rest/weights"
                , "/rest/notes"
-               , "/rest/exercise"
                , "/rest/workout/exercise"
                , "/rest/workout"
                , "/rest/workout"
