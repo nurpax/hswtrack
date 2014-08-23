@@ -25,6 +25,7 @@ testAddExercise :: T.Text -> T.Text -> Options -> Assertion
 testAddExercise name ty opts = do
   r <- postWith opts (mkUrl "/rest/exercise") ["name" := name, "type" := ty]
   -- Verify that the newly created object matches creation params
+  "application/json" @=? r ^. responseHeader "Content-Type"
   name @=? r ^. respPayload . key "name" . _String
   ty   @=? r ^. respPayload . key "type" . _String
   -- This is test code, so it's OK if we fail the below non-exhaustive
