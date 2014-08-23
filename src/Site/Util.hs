@@ -5,6 +5,7 @@ module Site.Util (
   , runHttpErrorEitherT
   , hoistHttpError
   , badReq
+  , forbiddenReq
   , parseDouble
   , parseInt64
   , tryGetParam
@@ -23,7 +24,6 @@ module Site.Util (
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
-import           Data.Aeson (ToJSON, encode)
 import           Data.ByteString (ByteString)
 import           Data.Int (Int64)
 import qualified Data.Text as T
@@ -31,6 +31,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
 import           Snap.Core as X
+import           Snap.Extras.JSON (writeJSON)
 import           Snap.Snaplet as X
 import           Snap.Snaplet.Auth as X
 import           Snap.Snaplet.SqliteSimple
@@ -50,17 +51,6 @@ finishEarly code str = do
   modifyResponse $ addHeader "Content-Type" "text/plain"
   writeBS str
   getResponse >>= finishWith
-
--- | Mark response as 'application/json'
-jsonResponse :: MonadSnap m => m ()
-jsonResponse = modifyResponse $ setHeader "Content-Type" "application/json"
-
--- | Set MIME to 'application/json' and write given object into
--- 'Response' body.
-writeJSON :: (MonadSnap m, ToJSON a) => a -> m ()
-writeJSON a = do
-  jsonResponse
-  writeLBS . encode $ a
 
 -- | Run an IO action with an SQLite connection
 withDb :: (S.Connection -> IO a) -> H a
@@ -84,6 +74,9 @@ runHttpErrorEitherT e = runEitherT e >>= either err id
 
 badReq :: String -> HttpError
 badReq msg = HttpError 400 msg
+
+forbiddenReq :: String -> HttpError
+forbiddenReq msg = HttpError 403 msg
 
 hoistHttpError :: Monad m => Either String a -> EitherT HttpError m a
 hoistHttpError (Left m)  = hoistEither . Left . badReq $ m

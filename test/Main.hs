@@ -22,6 +22,7 @@ main =
                                 , ("Add note",         testAddNote)
                                 , ("Set/clear weight", testSetWeight)
                                 ]
+  , testCase "workout perms" testAccessRights
   ]
   where
     requireAuthFail =

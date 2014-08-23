@@ -17,12 +17,14 @@ mkUrl :: String -> String
 mkUrl s = "http://localhost:8000" ++ s
 
 -- Test user login name
-login :: T.Text
-login = "test"
+login, login2 :: T.Text
+login  = "test"
+login2 = "test2"
 
 -- Test user password
-passwd :: T.Text
-passwd = "testpass"
+passwd, passwd2 :: T.Text
+passwd  = "testpass"
+passwd2 = "testpass2"
 
 emptyPostParams :: [(BS.ByteString, BS.ByteString)]
 emptyPostParams = []
@@ -30,11 +32,12 @@ emptyPostParams = []
 setParam :: Show a => T.Text -> a -> Options -> Options
 setParam name v = param name .~ [T.pack . show $ v]
 
--- | Create a user and run a list of subtests with cookies acquired
--- from the login process.
+-- | Create two tests users and run a list of subtests with cookies
+-- acquired from the login process of user 'login'.
 createUserTests :: [(String, Options -> Assertion)] -> IO Test
 createUserTests tests = do
-  r <- post (mkUrl "/rest/new_user") ["login" := login, "password" := passwd]
+  r <- post (mkUrl "/rest/new_user") ["login" := login,  "password" := passwd]
+  _ <- post (mkUrl "/rest/new_user") ["login" := login2, "password" := passwd2]
   let opts = defaults & cookies .~ (r ^. responseCookieJar)
   return
     . testGroup "Tests with created user"
@@ -55,12 +58,16 @@ testLoggedInOk opts = do
   r <- getWith opts (mkUrl "/rest/app")
   Just True @=? (r ^? responseBody . key "loggedIn" . _Bool)
 
--- GET requests against 'url' and expect to get error 403 back
-testLoggedInFail :: String -> Options -> Assertion
-testLoggedInFail url opts = do
+-- GET requests against 'url' and expect to get error back
+getExpectHttpError :: Options -> String -> Int -> Assertion
+getExpectHttpError opts url errCode = do
   E.try (getWith opts url) >>= check
   where
     check (Left (HT.StatusCodeException s _ _)) =
-      assertBool "error ok" (s ^. statusCode == 403)
+      assertBool "error ok" (s ^. statusCode == errCode)
     check (Left _)  = assertFailure "unexpected exception caught"
     check (Right _) = assertFailure "req should've failed"
+
+-- GET requests against 'url' and expect to get error 403 back
+testLoggedInFail :: String -> Options -> Assertion
+testLoggedInFail url opts = getExpectHttpError opts url 403

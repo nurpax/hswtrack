@@ -18,6 +18,7 @@ module Site.REST
   , restListExerciseTypes
   , restNewExerciseType
   , restNewWorkout
+  , restModifyWorkout
   , restQueryWorkouts
   , restAddExerciseSet
   , restDeleteExerciseSet
@@ -26,6 +27,7 @@ module Site.REST
 
 ------------------------------------------------------------------------------
 import           Control.Applicative
+import           Control.Monad (mzero)
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
 import           Control.Monad.Trans.Either
@@ -35,6 +37,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Data.Time
+import           Snap.Extras.JSON (getJSON)
 import           System.Locale (defaultTimeLocale)
 ------------------------------------------------------------------------------
 import           Model
@@ -45,14 +48,14 @@ type H = Handler App App
 
 -- Everything needed for rendering the home/settings page
 data AppContext = AppContext {
-    acLoggedIn :: Bool
+    acLoggedIn   :: Bool
   , acLoginError :: Maybe T.Text
-  , acContext :: Maybe LoggedInContext
+  , acContext    :: Maybe LoggedInContext
   }
 
 data LoggedInContext = LoggedInContext {
-    _ctxLogin :: T.Text
-  , _ctxWeight :: Maybe WeightSample
+    _ctxLogin    :: T.Text
+  , _ctxWeight   :: Maybe WeightSample
   , _ctxSettings :: M.Map String ConfigVal
   }
 
@@ -103,10 +106,12 @@ instance ToJSON ExerciseSets where
            ]
 
 instance ToJSON Workout where
-  toJSON (Workout i t c es) =
+  toJSON (Workout i u t c p es) =
     object [ "id"        .= i
+           , "userId"    .= u
            , "time"      .= t
            , "comment"   .= c
+           , "public"    .= p
            , "exercises" .= map (uncurry ExerciseSets) es
            ]
 
@@ -126,6 +131,15 @@ instance ToJSON ExerciseSet where
            , "comment" .= comment
            ]
 
+data WorkoutPutReq = WorkoutPutReq {
+    wputWorkoutId :: RowId
+  , wputPublic    :: Bool
+  }
+
+instance FromJSON WorkoutPutReq where
+    parseJSON (Object v) = WorkoutPutReq <$> (RowId <$> v .: "id") <*> v .: "public"
+    parseJSON _          = mzero
+
 restLoginError :: MonadSnap m => T.Text -> m ()
 restLoginError e =
   writeJSON (AppContext False (Just e) Nothing)
@@ -139,8 +153,25 @@ loginReqdResponse action = with auth currentUser >>= go
     go (Just u) = runHttpErrorEitherT $ do
       uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
       uid' <- hoistHttpError (reader T.decimal (unUid uid))
-      json <- toJSON <$> action (Model.User uid' (userLogin u))
-      return . writeJSON . wrapPayload (Just uid) $ json
+      let modelUser = Model.User uid' (userLogin u)
+      json <- toJSON <$> action modelUser
+      return . writeJSON . wrapPayload (Just modelUser) $ json
+
+anonResponse :: ToJSON a => (Maybe User -> EitherT HttpError H a) -> H ()
+anonResponse action = do
+  with auth currentUser >>= \u -> runHttpErrorEitherT $ do
+    go u
+  where
+    go Nothing  = do
+      p <- action Nothing
+      return . writeJSON $ wrapPayload Nothing (toJSON p)
+
+    go (Just u) = do
+      uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
+      uid' <- hoistHttpError (reader T.decimal (unUid uid))
+      let modelUser = Just $ Model.User uid' (userLogin u)
+      p <- action modelUser
+      return . writeJSON $ wrapPayload modelUser (toJSON p)
 
 -- Get requested date either from GET params or return today's time if not specified.
 -- FIXME: at some point we need to decide how to deal with timezones here
@@ -218,31 +249,20 @@ restListNotes = method GET (loginReqdResponse get)
 ----------------------------------------------------------------------
 -- Workout related AJAX entry points
 
-wrapPayload :: Maybe UserId -> Value -> Value
+wrapPayload :: Maybe Model.User -> Value -> Value
 wrapPayload Nothing v =
-  object [ "loggedIn" .= False
-         , "payload"  .= v
+  object [ "loggedIn"  .= False
+         , "payload"   .= v
          ]
-wrapPayload (Just _) v =
-  object [ "loggedIn" .= True
-         , "payload"  .= v
+wrapPayload (Just (Model.User uid login)) v =
+  object [ "loggedIn"  .= True
+         , "userId"    .= uid
+         , "userLogin" .= login
+         , "payload"   .= v
          ]
-
-anonResponse :: ToJSON a => EitherT HttpError H a -> H ()
-anonResponse action = do
-  with auth currentUser >>= \u -> runHttpErrorEitherT $ do
-    j <- action
-    go j u
-  where
-    go p Nothing  = do
-      return . writeJSON $ wrapPayload Nothing (toJSON p)
-
-    go p (Just u) = do
-      uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
-      return . writeJSON $ wrapPayload (Just uid) (toJSON p)
 
 restListExerciseTypes :: H ()
-restListExerciseTypes = anonResponse $ do
+restListExerciseTypes = anonResponse $ \_user -> do
   lift $ withDb $ \conn -> Model.queryExercises conn
 
 -- TODO need to check for dupes by lower case name here, and return
@@ -257,11 +277,13 @@ restNewExerciseType = loginReqdResponse $ \_user -> do
 restQueryWorkouts :: H ()
 restQueryWorkouts = do
   wrkId <- getParam "id"
-  maybe (loginReqdResponse listWorkouts) (loginReqdResponse . oneWorkout) wrkId
+  maybe (loginReqdResponse listWorkouts) (anonResponse . oneWorkout) wrkId
   where
     oneWorkout id_ user = do
       workoutId_ <- parseInt64 . T.decodeUtf8 $ id_
-      lift $ withDb $ \conn -> Model.queryWorkout conn user (RowId workoutId_)
+      workout <-
+        lift $ withDb $ \conn -> Model.queryWorkout conn user (RowId workoutId_)
+      tryJust (forbiddenReq "missing or unauthorized workout access") workout
 
     listWorkouts user = do
       today <- getToday
@@ -298,3 +320,13 @@ restQueryWorkoutHistory = loginReqdResponse $ \user -> do
   limit <- getIntParam "limit"
   today <- getToday
   lift $ withDb $ \conn -> Model.queryPastWorkouts conn user today limit
+
+restModifyWorkout :: H ()
+restModifyWorkout = loginReqdResponse modify
+  where
+    modify user = do
+      reqParams' <- lift getJSON
+      parms <- hoistHttpError reqParams'
+      lift $ withDb $ \conn -> do
+        Model.makeWorkoutPublic conn user (wputWorkoutId parms) (wputPublic parms)
+        Model.queryWorkout conn (Just user) (wputWorkoutId parms)

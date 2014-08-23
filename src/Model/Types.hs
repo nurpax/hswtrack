@@ -35,8 +35,10 @@ data Note = Note Int UTCTime T.Text
 
 data Workout = Workout {
     workoutId        :: RowId
+  , workoutUserId    :: RowId
   , workoutTimestamp :: UTCTime
   , workoutComment   :: Maybe T.Text
+  , workoutPublic    :: Bool
   , workoutSets      :: [(Exercise, [ExerciseSet])]
   }
 

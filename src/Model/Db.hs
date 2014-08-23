@@ -18,6 +18,7 @@ module Model.Db (
   , queryExercises
   , addExercise
   , createWorkout
+  , makeWorkoutPublic
   , addExerciseSet
   , deleteExerciseSet) where
 
@@ -48,7 +49,7 @@ instance FromRow Note where
   fromRow = Note <$> field <*> field <*> field
 
 instance FromRow Workout where
-  fromRow = Workout <$> fmap RowId field <*> field <*> field <*> pure []
+  fromRow = Workout <$> fmap RowId field <*> fmap RowId field <*> field <*> field <*> field <*> pure []
 
 instance ToField ExerciseType where
   toField e = SQLText . exerciseTypeToText $ e
@@ -106,6 +107,10 @@ upgradeTo1 conn = do
               , " weight REAL,"
               , " comment TEXT)"])
 
+upgradeTo2 :: Connection -> IO ()
+upgradeTo2 conn = do
+  execute_ conn "ALTER TABLE workouts ADD COLUMN public BOOL DEFAULT 0 NOT NULL"
+
 -- | Create the necessary database tables, if not already initialized.
 createTables :: Connection -> IO ()
 createTables conn = do
@@ -145,6 +150,7 @@ createTables conn = do
         version <- schemaVersion conn
         when (version == n) $ u conn >> setSchemaVersion conn (n + 1)
   upgradeVersion 0 upgradeTo1
+  upgradeVersion 1 upgradeTo2
   execute_ conn "COMMIT"
 
 setWeight :: Connection -> User -> UTCTime -> Double -> IO WeightSample
@@ -220,15 +226,15 @@ addExercise conn name ty = do
   eid <- lastInsertRowId conn
   queryExercise conn (RowId eid)
 
-querySets :: Connection -> User -> RowId -> IO [SetRow]
-querySets conn (User uid _) wrkId =
+querySets :: Connection -> RowId -> IO [SetRow]
+querySets conn wrkId =
   query conn
     (Query $
       T.concat [ "SELECT id,timestamp,exercise_id,reps,weight,comment FROM sets "
-                , " WHERE (user_id = ?) AND (workout_id = ?) "
+                , " WHERE workout_id = ? "
                 , " ORDER BY id"
                 ])
-      (uid, unRowId wrkId)
+      (Only . unRowId $ wrkId)
 
 setRowToSet :: SetRow -> ExerciseSet
 setRowToSet (SetRow i ts _eid reps weight comment) = ExerciseSet i ts reps weight comment
@@ -240,16 +246,24 @@ createWorkout :: Connection -> User -> UTCTime -> IO Workout
 createWorkout conn (User uid _) today = do
   execute conn "INSERT INTO workouts (user_id,timestamp) VALUES (?,?)" (uid, today)
   rowId <- lastInsertRowId conn
-  [w] <- query conn "SELECT id,timestamp,comment FROM workouts WHERE id = ? LIMIT 1" (Only rowId)
+  [w] <- query conn "SELECT id,user_id,timestamp,comment,public FROM workouts WHERE id = ? LIMIT 1" (Only rowId)
   return w
 
-workoutExercises :: Connection  -> User -> M.Map RowId Exercise -> Workout -> IO Workout
-workoutExercises conn user exercises w = do
+makeWorkoutPublic :: Connection -> User -> RowId -> Bool -> IO ()
+makeWorkoutPublic conn (User uid _) workoutId_ public =
+  executeNamed conn "UPDATE workouts SET public = :pub WHERE id = :wid AND user_id = :uid"
+    [ ":pub" := public
+    , ":wid" := unRowId workoutId_
+    , ":uid" := uid
+    ]
+
+workoutExercises :: Connection  -> M.Map RowId Exercise -> Workout -> IO Workout
+workoutExercises conn exercises w = do
   -- Compute sort order for exercise groups.  We don't have an
   -- explicit "UI insert order id" in the database schema so we
   -- do a bit of gymnastics here to extract the same ordering
   -- based on row ids.
-  sets <- querySets conn user (workoutId w)
+  sets <- querySets conn (workoutId w)
   let exerciseOrder =
         foldl (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
   let sets' =
@@ -264,24 +278,35 @@ listExercisesMap conn = do
   es <- queryExercises conn
   return . M.fromList . map (\e@(Exercise i _ _) -> (i, e)) $ es
 
-queryWorkout :: Connection -> User -> RowId -> IO Workout
-queryWorkout conn user@(User uid _) workoutId_ = do
-  [workout] <-
-    query conn
-      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (id = ?) LIMIT 1"
-      (uid, unRowId workoutId_)
-      :: IO [Workout]
-  exercises <- listExercisesMap conn
-  workoutExercises conn user exercises workout
+-- Query a workout by workout ID.  If given a Nothing user, this query
+-- will try to find a publicly shareable workout for the given ID.
+queryWorkout :: Connection -> Maybe User -> RowId -> IO (Maybe Workout)
+queryWorkout conn user workoutId_ = do
+  ws <-
+    case user of
+      Just (User uid _) ->
+        query conn
+          "SELECT id,user_id,timestamp,comment,public FROM workouts WHERE ((user_id = ?) OR (public = 1)) AND (id = ?) LIMIT 1"
+          (uid, unRowId workoutId_) :: IO [Workout]
+      Nothing ->
+        query conn
+          "SELECT id,user_id,timestamp,comment,public FROM workouts WHERE (id = ?) AND (public = 1) LIMIT 1"
+          (Only . unRowId $ workoutId_) :: IO [Workout]
+  case ws of
+    []  -> return Nothing
+    [w] -> do
+      exercises <- listExercisesMap conn
+      Just <$> workoutExercises conn exercises w
+    _   -> error "impossible"
 
 queryTodaysWorkouts :: Connection -> User -> UTCTime -> IO [Workout]
-queryTodaysWorkouts conn user@(User uid _) today = do
+queryTodaysWorkouts conn (User uid _) today = do
   exercises <- listExercisesMap conn
   ws <-
     query conn
-      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND (date(timestamp) = date(?))" (uid, today)
+      "SELECT id,user_id,timestamp,comment,public FROM workouts WHERE (user_id = ?) AND (date(timestamp) = date(?))" (uid, today)
       :: IO [Workout]
-  mapM (workoutExercises conn user exercises) ws
+  mapM (workoutExercises conn exercises) ws
 
 addExerciseSet :: Connection -> User -> RowId -> RowId -> Int -> Double -> IO ExerciseSet
 addExerciseSet conn (User uid _) workoutId_ exerciseId_ reps weight = do
@@ -298,13 +323,13 @@ deleteExerciseSet conn (User uid _) setId_ =
 
 -- Query N past workouts before or up to 'today'
 queryPastWorkouts :: Connection -> User -> UTCTime -> Int -> IO [Workout]
-queryPastWorkouts conn user@(User uid _) today limit = do
+queryPastWorkouts conn (User uid _) today limit = do
   exercises <- listExercisesMap conn
   ws <-
     query conn
-      "SELECT id,timestamp,comment FROM workouts WHERE (user_id = ?) AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?"
+      "SELECT id,user_id,timestamp,comment,public FROM workouts WHERE (user_id = ?) AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?"
       (uid, today, limit)
       :: IO [Workout]
   -- TODO this will issue a large # of SQL queries.  If that ever
   -- becomes a problem, turn this into a join.
-  mapM (workoutExercises conn user exercises) ws
+  mapM (workoutExercises conn exercises) ws

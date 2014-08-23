@@ -68,6 +68,7 @@ routes staticAssetDir =
   , ("/rest/workout/exercise", method POST restAddExerciseSet <|> method DELETE restDeleteExerciseSet)
   , ("/rest/workout",  method POST restNewWorkout)
   , ("/rest/workout",  method GET restQueryWorkouts)
+  , ("/rest/workout",  method PUT restModifyWorkout)
   , ("/rest/stats/workout", method GET restQueryWorkoutHistory)
   , ("/favicon.ico",   serveFile (staticAssetDir ++ "/favicon.ico"))
   , ("/static",        serveDirectory staticAssetDir)

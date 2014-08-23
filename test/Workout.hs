@@ -2,9 +2,9 @@
 
 module Workout where
 
-import           Control.Lens
+import           Control.Lens hiding ((.=))
 import           Control.Monad (void)
-import           Data.Aeson (Value)
+import           Data.Aeson (object, Value, (.=))
 import           Data.Aeson.Lens
 import qualified Data.ByteString.Lazy as LBS
 import           Data.List
@@ -130,9 +130,59 @@ testSetDelete2 opts = do
                                        , ("deadlift", [(5, 100)])]
   setIds    <- queryWorkoutSetIds opts workoutId
   r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
+  Just False @=? r ^? respPayload . key "public" . _Bool
   let exerciseNames = r ^.. exercises . key "name" . _String
   ["chin-ups", "deadlift"]  @=? exerciseNames
   deleteSet opts (setIds !! 0)
   r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
   let exerciseNames = r ^.. exercises . key "name" . _String
   ["deadlift"]  @=? exerciseNames
+
+-- Create a workout and test that it can be accessed using the logged
+-- in user.  Then try that it cannot be accessed without being logged
+-- in.  Then make it public and ensure it can again be accessed.
+testAccessRights :: Assertion
+testAccessRights = do
+  -- Login
+  r <- post (mkUrl "/rest/login") ["login" := login, "password" := passwd]
+  let opts1 = defaults & cookies .~ (r ^. responseCookieJar)
+  exTypes   <- listExercises opts1
+  workoutId <- addWorkout opts1 exTypes [ ("chin-ups", [(10,0), (5, 10)])
+                                        , ("deadlift", [(5, 100)])
+                                        ]
+  -- Logged out access should fail
+  getExpectHttpError (defaults & setParam "id" workoutId) (mkUrl "/rest/workout") 403
+  -- Logged out access shouldn't succeed
+  r <- getWith (opts1 & setParam "id" workoutId) (mkUrl "/rest/workout")
+  Just False @=? r ^? respPayload . key "public" . _Bool
+  -- Login with the 'test2' user and verify that we cannot read the
+  -- workout from user 'test'
+  r <- post (mkUrl "/rest/login") ["login" := login2, "password" := passwd2]
+  let opts2 = defaults & cookies .~ (r ^. responseCookieJar)
+  -- Logged out access should fail
+  getExpectHttpError (defaults & setParam "id" workoutId) (mkUrl "/rest/workout") 403
+  getExpectHttpError (opts2 & setParam "id" workoutId) (mkUrl "/rest/workout") 403
+  -------------------------------------------------------
+  -- Now make the post public and try again.  Anon access should
+  -- succeed now
+  -------------------------------------------------------
+  r <- post (mkUrl "/rest/login") ["login" := login, "password" := passwd]
+  let opts = defaults & cookies .~ (r ^. responseCookieJar)
+      parms = object [ "id"     .= workoutId
+                     , "public" .= True
+                     ]
+  r <- putWith opts (mkUrl "/rest/workout") parms
+  Just True @=? r ^? respPayload . key "public" . _Bool
+  let Just loggedInUserId = r ^? responseBody . key "userId" . _Integer
+  let Just workoutUserId  = r ^? respPayload  . key "userId" . _Integer
+  loggedInUserId @=? workoutUserId
+  -- User 'test2' should be able to access the public workout now
+  r <- post (mkUrl "/rest/login") ["login" := login2, "password" := passwd2]
+  let opts2 = defaults & cookies .~ (r ^. responseCookieJar)
+  r <- getWith (opts2 & setParam "id" workoutId) (mkUrl "/rest/workout")
+  Just True @=? r ^? respPayload . key "public" . _Bool
+  let Just loggedInUserId2 = r ^? responseBody . key "userId" . _Integer
+  let Just workoutUserId2  = r ^? respPayload  . key "userId" . _Integer
+  -- The workout was created by user 'test' but we're logged in as
+  -- 'test2'.  So the user id's in the below shouldn't match.
+  assertBool "loginId must not match workout owner id" (loggedInUserId2 /= workoutUserId2)
