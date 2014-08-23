@@ -261,6 +261,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
 
         init: function(w) {
             this.id        = w.id;
+            this.public    = w.public;
             this.exercises = _.map(w.exercises, function (e) { return new Exercise(e); });
         },
 
@@ -288,7 +289,19 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                                     self.update();
                                 });
             }
-        }
+        },
+
+        setPublic: function (publicity) {
+            var self = this;
+            $.ajax({ url: "/rest/workout",
+                     type: "PUT",
+                     data: JSON.stringify({ id: self.id, public: publicity }),
+                     success: function (resp) {
+                         self.public = resp.payload.public;
+                         self.update();
+                     }
+                   });
+        },
     });
 
 

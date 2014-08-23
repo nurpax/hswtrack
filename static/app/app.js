@@ -81,6 +81,13 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
             return new Handlebars.SafeString((new Date(v)).toLocaleString());
         });
 
+        Handlebars.registerHelper('checkbox', function(id, checked) {
+            if (checked) {
+                return '<input id="'+id+'" type="checkbox" checked>';
+            }
+            return '<input id="'+id+'" type="checkbox">';
+        });
+
         // Instruct router to go to the login screen if any latter AJAX
         // call returns "Login required" 403.
         $.ajaxSetup({ error: function (jqXHR, ts, e) {

@@ -118,8 +118,15 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
         renderWorkout: function (workout, elt) {
             var self = this;
 
-            var c = { exercises: workout.getExercises() };
+            var c = {
+                public: workout.public,
+                exercises: workout.getExercises()
+            };
             $(elt).html(templateWorkout(c));
+
+            $("#workout-public", elt).click(function () {
+                workout.setPublic(this.checked);
+            });
 
             $(".exercise", elt).each(function (exerciseIdx) {
                 var exerciseElt = this;
