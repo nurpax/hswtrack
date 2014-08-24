@@ -20,6 +20,9 @@
   </tr>
   {{/each}}
   {{#ifBodyweight this}}
-  <tr class="reps_total"><td>Total:</td><td>{{totalReps}}</td><td></td></tr>
+  <tr class="sets_total"><td colspan="4">Total: {{totalReps}}</td></tr>
   {{/ifBodyweight}}
+  {{#ifWeighted this}}
+  <tr class="sets_total"><td colspan="4">Total: {{totalWeight}} kg</td></tr>
+  {{/ifWeighted}}
 </table>

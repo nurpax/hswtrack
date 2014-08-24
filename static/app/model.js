@@ -230,6 +230,11 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
             if (this.type == "BW") {
                 this.totalReps = _.reduce(this.sets, function (a, s) { return a+s.reps; }, 0);
             }
+            if (this.type == "W") {
+                this.totalWeight = _.reduce(this.sets, function (a, s) {
+                    return a+s.reps*s.weight;
+                }, 0);
+            }
         },
 
         addSetPrivate: function (params, cb) {

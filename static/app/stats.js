@@ -1,4 +1,4 @@
-define(['jquery', 'handlebars', 'underscore', 'app/view', 'hbs!templates/stats-main', 'hbs!templates/stats-history', 'hbs!templates/exercise-no-edit'], function($, Handlebars, _, view, templateStatsMain, templateStatsHistory, templateExercise) {
+define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model', 'hbs!templates/stats-main', 'hbs!templates/stats-history', 'hbs!templates/exercise-no-edit'], function($, Handlebars, _, view, model, templateStatsMain, templateStatsHistory, templateExercise) {
     "use strict";
 
     function loadPastWorkouts () {
@@ -33,7 +33,8 @@ define(['jquery', 'handlebars', 'underscore', 'app/view', 'hbs!templates/stats-m
             var self = this;
 
             $.when(loadPastWorkouts()).done(function (ws) {
-                self.renderPastWorkouts(ws.payload);
+                var workouts = _.map(ws.payload, function(w) { return new model.Workout(w); });
+                self.renderPastWorkouts(workouts);
             });
         }
     });

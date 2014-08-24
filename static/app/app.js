@@ -77,6 +77,13 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
             return options.inverse(this);
         });
 
+        Handlebars.registerHelper('ifWeighted', function(v, options) {
+            if(v.type === "W") {
+                return options.fn(this);
+            }
+            return options.inverse(this);
+        });
+
         Handlebars.registerHelper('dateString', function(v, options) {
             return new Handlebars.SafeString((new Date(v)).toLocaleString());
         });
