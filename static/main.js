@@ -24,9 +24,6 @@ requirejs.config({
             exports: "d3"
         },
         bootstrap: ['jquery'],
-        router: {
-            exports: "router"
-        },
         history: {
             exports: "History"
         },
