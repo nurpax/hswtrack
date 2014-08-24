@@ -1,7 +1,7 @@
 <h2>Past 14 workouts</h2>
 <div id="workouts">
   {{#each workouts}}
-  <h3>Workout {{id}} <small>{{{dateString time}}}</small></h3>
+  <h3><a href="/workout/{{id}}">Workout {{id}}</a> <small>{{{dateString time}}}</small></h3>
   {{#each exercises}}
   <div class="exercise">
     {{> exerciseNoEdit this}}
