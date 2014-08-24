@@ -270,10 +270,30 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     // Single workout, contains what exercises were done
     var Workout = ModelBase.extend({
 
-        init: function(w) {
-            this.id        = w.id;
-            this.public    = w.public;
-            this.exercises = _.map(w.exercises, function (e) { return new Exercise(e); });
+        init: function(w, et) {
+            if (w) {
+                this.id            = w.id;
+                this.public        = w.public;
+                this.userId        = w.userId;
+                this.exercises     = _.map(w.exercises, function (e) { return new Exercise(e); });
+                this.exerciseTypes = et;
+            }
+        },
+
+        load: function (id) {
+            var self = this;
+
+            $.when(loadWorkout(id), loadExerciseTypes()).done(function (w, es) {
+                self.init(w[0].payload, new ExerciseTypes(es[0].payload));
+                self.editable = w[0].loggedIn && w[0].userId == w[0].payload.userId;
+                self.update();
+            });
+        },
+
+        getExerciseTypes: function () { return this.exerciseTypes.exerciseTypes; },
+
+        getExerciseById: function (id) {
+            return this.exerciseTypes.getExerciseById(id);
         },
 
         update: function () {
@@ -322,7 +342,8 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         init: function () {
             this.workouts      = [];
             this.exerciseTypes = [];
-            this.readOnly      = false;
+            this.editable      = true;
+            this.loginUserId   = null;
         },
 
         update: function () {
@@ -331,28 +352,23 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         },
 
         setWorkouts: function (ws) {
-            this.workouts = _.map(ws, function (w) { return new Workout(w); });
+            var self = this;
+            this.workouts = _.map(ws, function (w) { return new Workout(w, self.exerciseTypes); });
         },
 
         load: function (id) {
             var self = this;
+            var setLogin = function (resp) {
+                self.editable    = resp.loggedIn;
+                self.loginUserId = resp.userId;
+            };
 
-            // If no 'id' specified, load today's workouts
-            if (!id) {
-                $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
-                    self.readOnly = !ws[0].loggedIn;
-                    self.setWorkouts(ws[0].payload);
-                    self.exerciseTypes = new ExerciseTypes(es[0].payload);
-                    self.update();
-                });
-            } else {
-                $.when(loadWorkout(id), loadExerciseTypes()).done(function (w, es) {
-                    self.readOnly = !w[0].loggedIn;
-                    self.setWorkouts([w[0].payload]);
-                    self.exerciseTypes = new ExerciseTypes(es[0].payload);
-                    self.update();
-                });
-            }
+            $.when(loadWorkouts(), loadExerciseTypes()).done(function (ws, es) {
+                setLogin(ws[0]);
+                self.exerciseTypes = new ExerciseTypes(es[0].payload);
+                self.setWorkouts(ws[0].payload);
+                self.update();
+            });
         },
 
         newWorkout: function () {
@@ -361,27 +377,21 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                       type: "POST",
                       data: [],
                       success: function (resp) {
-                          var w = new Workout(resp.payload);
+                          var w = new Workout(resp.payload, self.exerciseTypes);
                           self.workouts.push(w);
                           self.update();
                       }
                     });
         },
 
-        getWorkouts: function () { return this.workouts; },
-
-        getExerciseTypes: function () { return this.exerciseTypes.exerciseTypes; },
-
-        getExerciseById: function (id) {
-            return this.exerciseTypes.getExerciseById(id);
-        }
-
+        getWorkouts: function () { return this.workouts; }
     });
 
     // export
     return {
-        'WeightCont': WeightCont,
-        'WorkoutCont': WorkoutCont,
+        'WeightCont':    WeightCont,
+        'Workout':       Workout,
+        'WorkoutCont':   WorkoutCont,
         'ExerciseTypes': ExerciseTypes,
     };
 });

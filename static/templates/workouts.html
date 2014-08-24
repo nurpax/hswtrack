@@ -1,10 +1,11 @@
 <div id="workouts">
   {{#each workouts}}
-  <h3><a href="/workout/{{id}}">Workout {{id}}</a></h3>
   <div class="workout">
   </div>
   {{/each}}
 </div>
+{{#if editable}}
 <div>
   <button id="new-workout" class="btn btn-primary">Add a Workout</button>
 </div>
+{{/if}}

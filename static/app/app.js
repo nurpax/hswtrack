@@ -96,11 +96,12 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
 
         var weightView = new weight.WeightView();
         var et = new workout.ExerciseTypeView();
+        var wl = new workout.WorkoutListView();
         var w  = new workout.WorkoutView();
         var s  = new stats.StatsView();
 
         self.router.route("/workout/:id", function (id) { w.render(id); });
-        self.router.route("/workout",     function ()   { w.render(null); });
+        self.router.route("/workout",     function ()   { wl.render(); });
         self.router.route("/workout/add-exercise",
                    function () { et.render(); });
         self.router.route("/stats",       function ()   { s.render(); });

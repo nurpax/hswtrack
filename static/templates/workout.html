@@ -1,7 +1,10 @@
+<h3><a href="/workout/{{id}}">Workout {{id}}</a></h3>
+{{#if editable}}
 <label>
   {{{checkbox "workout-public" public}}}
   Allow public viewing?
 </label>
+{{/if}}
 
 {{#each exercises}}
 <div class="exercise"></div>

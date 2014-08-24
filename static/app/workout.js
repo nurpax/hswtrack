@@ -1,4 +1,4 @@
-define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts', 'hbs!templates/workout', 'hbs!templates/exercise', 'hbs!templates/add-exercise', 'hbs!templates/add-set-control', 'hbs!templates/new-exercise'], function($, Handlebars, model, view, templateWorkouts, templateWorkout, templateExercise, templateAddExercise, templateAddSetControl, templateNewExercise) {
+define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts', 'hbs!templates/workout', 'hbs!templates/exercise', 'hbs!templates/exercise-no-edit', 'hbs!templates/add-exercise', 'hbs!templates/add-set-control', 'hbs!templates/new-exercise'], function($, Handlebars, model, view, templateWorkouts, templateWorkout, templateExercise, templateExerciseNoEdit, templateAddExercise, templateAddSetControl, templateNewExercise) {
     "use strict";
 
     var View = view.View;
@@ -33,18 +33,18 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
         }
     });
 
-
     var WorkoutView = View.extend({
 
-        init: function () {
+        init: function (w) {
             var self = this;
             this._super();
 
-            Handlebars.registerPartial('addSetControl', templateAddSetControl);
-
-            this.model = new model.WorkoutCont();
+            if (w) {
+                this.model = w;
+            } else {
+                this.model = new model.Workout();
+            }
         },
-
 
         attachAddExercise: function (elt, addSetCB, exercise, workoutId) {
             var self = this;
@@ -119,9 +119,10 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
             var self = this;
 
             var c = {
-                public: workout.public,
                 exercises: workout.getExercises()
             };
+            $.extend(c, workout);
+
             $(elt).html(templateWorkout(c));
 
             $("#workout-public", elt).click(function () {
@@ -154,26 +155,66 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
         renderWorkoutReadOnly: function (workout, elt) {
             var self = this;
 
-            var c = { exercises: workout.getExercises() };
+            var c = {
+                exercises: workout.getExercises(),
+            };
+            $.extend(c, workout);
+
             $(elt).html(templateWorkout(c));
+
+            $(".exercise", elt).each(function (exerciseIdx) {
+                var e = c.exercises[exerciseIdx];
+                $(this).html(templateExerciseNoEdit(e));
+            });
+        },
+
+        renderPrivate: function (elt) {
+            var self = this;
+
+            self.model.setUpdateHandler(function (c) {
+                if (!self.model.editable)
+                    self.renderWorkoutReadOnly(c, elt);
+                else
+                    self.renderWorkout(c, elt);
+            });
+        },
+
+        render: function (id) {
+            var self = this;
+            var elt  = $("#app-container");
+            self.renderPrivate(elt);
+            self.model.load(id);
+        }
+
+    });
+
+    var WorkoutListView = View.extend({
+
+        init: function () {
+            var self = this;
+            this._super();
+
+            Handlebars.registerPartial('addSetControl', templateAddSetControl);
+
+            this.model = new model.WorkoutCont();
         },
 
         renderWorkouts: function (workoutCont) {
             var self = this;
-            var workouts = { workouts: workoutCont.getWorkouts() };
+
+            var workouts = {
+                workouts: workoutCont.getWorkouts(),
+                editable: workoutCont.editable
+            };
 
             $("#app-container").html(templateWorkouts(workouts));
 
             $(".workout").each(function (workoutIdx) {
-                var workoutElt = this;
-                var workout    = workouts.workouts[workoutIdx];
-
-                workout.setUpdateHandler(function (w) {
-                    if (self.readOnly)
-                        self.renderWorkoutOnly(w, workoutElt);
-                    else
-                        self.renderWorkout(w, workoutElt);
-                });
+                var workoutElt  = this;
+                var workout     = workouts.workouts[workoutIdx];
+                var workoutView = new WorkoutView(workout);
+                workout.editable = workouts.editable && workout.userId == workoutCont.loginUserId;
+                workoutView.renderPrivate(workoutElt);
             });
 
             $("button#new-workout").click(function (elt) {
@@ -181,10 +222,10 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
             });
         },
 
-        render: function (id) {
+        render: function () {
             var self = this;
             self.model.setUpdateHandler(function (c) { self.renderWorkouts(c); });
-            self.model.load(id);
+            self.model.load();
         }
 
     });
@@ -192,6 +233,7 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
     // export
     return {
         'WorkoutView': WorkoutView,
+        'WorkoutListView': WorkoutListView,
         'ExerciseTypeView': ExerciseTypeView,
     };
 });
