@@ -280,6 +280,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                 this.id            = w.id;
                 this.public        = w.public;
                 this.userId        = w.userId;
+                this.time          = w.time;
                 this.exercises     = _.map(w.exercises, function (e) { return new Exercise(e); });
                 this.exerciseTypes = et;
             }
