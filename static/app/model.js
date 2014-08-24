@@ -217,10 +217,19 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     var Exercise = ModelBase.extend({
 
         init: function(e) {
-            this.id       = e.id;
-            this.name     = e.name;
-            this.type     = e.type;
-            this.sets     = e.sets ? e.sets : [];
+            this.id   = e.id;
+            this.name = e.name;
+            this.type = e.type;
+            this.sets = e.sets ? e.sets : [];
+            this.updateStats();
+        },
+
+        // Compute some nice-to-know stats, like total reps count for
+        // each exercise
+        updateStats: function() {
+            if (this.type == "BW") {
+                this.totalReps = _.reduce(this.sets, function (a, s) { return a+s.reps; }, 0);
+            }
         },
 
         addSetPrivate: function (params, cb) {
@@ -230,6 +239,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                      data: params,
                      success: function (resp) {
                          self.sets.push(resp.payload);
+                         self.updateStats();
                          cb();
                      }
                    });
@@ -247,6 +257,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                      data: params,
                      success: function () {
                          self.sets = _.filter(self.sets, function (s) { return s.id != params.id; });
+                         self.updateStats();
                          self.update();
                      }
                    });
