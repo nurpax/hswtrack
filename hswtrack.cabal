@@ -57,12 +57,9 @@ Executable hswtrack
 test-suite resttest
   default-language: Haskell2010
   type:             exitcode-stdio-1.0
-
   hs-source-dirs: test
   main-is:        Main.hs
-
   ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind
-
   build-depends: base
                , aeson
                , bytestring
@@ -76,3 +73,15 @@ test-suite resttest
                , time
                , vector
                , wreq
+
+executable dbbench
+  default-language: Haskell2010
+  hs-source-dirs: src, dbbench
+  main-is:        Main.hs
+  ghc-options:   -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind
+  build-depends:  base
+                , containers
+                , criterion
+                , sqlite-simple
+                , text
+                , time
