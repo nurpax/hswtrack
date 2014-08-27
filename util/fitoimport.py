@@ -34,7 +34,15 @@ hswtrackExercises = { 1:  ("Chin-ups", "BW"),
                       11: ("Barbell Squat", "W"),
                       12: ("Barbell Incline Bench Press", "W"),
                       13: ("Sit-ups", "BW"),
-                      14: ("Dumbbell Lunges", "W")
+                      14: ("Dumbbell Lunges", "W"),
+                      15: ("Leg raises", "BW"),
+                      16: ("Push-ups", "BW"),
+                      17: ("Push-ups (on knees)", "BW"),
+                      18: ("Crunch", "BW"),
+                      19: ("Cable Rope Overhead Triceps Extension", "W"),
+                      20: ("Upright Barbell Row", "W"),
+                      21: ("Incline Dumbbell Bench Press", "W"),
+                      22: ("Dumbbell Bicep Curl", "W")
                     }
 
 class Sets():
@@ -48,15 +56,21 @@ def fitoExerciseMap():
     d[1]   = 4   # bench
     d[2]   = 11  # squat
     d[3]   = 6   # deadlift
+    d[11]  = 18  # crunch
+    d[42]  = 22  # dumbbell bicep curl
     d[84]  = 12  # incline bench press
+    d[91]  = 5   # dips (chest version)
     d[150] = 7   # hyperextension
     d[151] = 2   # good morning
     d[171] = 14  # dumbbell lunges
     d[174] = 3   # front squat
     d[183] = 10  # ohp
+    d[230] = 20  # upright barbell row
+    d[245] = 19  # Cable Rope Overhead Triceps Extension
     d[251] = 5   # dips
     d[283] = 1   # chin-ups
     d[288] = 8   # pull-ups
+    d[303] = 21  # Incline Dumbbell Bench Press
     d[349] = 13  # sit-ups
     d[472] = 9   # power clean
     return d
@@ -119,10 +133,6 @@ def __main__(argv):
             actions = x["actions"]
             for action in actions:
                 date = action["actiondate"]
-                # TODO import date cutoff only works for me, specify
-                # this on the command line!
-                if date >= "2014-01-06":
-                    continue
                 typeId = action["action"]["id"]
                 effort = action["effort0_metric"]
                 reps = action["effort1_metric"]
@@ -130,19 +140,26 @@ def __main__(argv):
 
                 # Skip some exercises like:
                 #
+                # 5   = machine ab crunch
                 # 34  = barbell curl
                 # 164 = one-arm dumbell row
                 # 198 = front db raise
+                # 256 = Lying Close-Grip Barbell Triceps Extension Behind The Head
+                # 286 = lat pulldown
                 # 315 = rowing machine
+                # 320 = swimming
                 # 518 = running
                 # 525 = walking
+                # 914 = kettlebell lunge
+                # 935 = machine back extension
                 # 957 = kettlebell lunge
-                if typeId in [34, 164, 198, 315,  518, 525, 957]:
+                if typeId in [5, 34, 164, 198, 256, 286, 315, 320, 518, 525, 914, 935, 957]:
                     print ("Skipping exercise {%d} on {%s}" % (typeId, date))
                     continue
 
                 if not (typeId in fitoExercises):
                     print ("Unknown exercise: "+str(typeId))
+                    print ("  name: "+action["action"]["name"])
                     sys.exit(0)
 
                 (name,ty) = hswtrackExercises[fitoExercises[typeId]]
@@ -174,7 +191,7 @@ def __main__(argv):
                 print ("  "+str(s.reps) + " x "+str(s.weight) + " kg ("+ty+")")
         print ("")
     # TODO fix userId here
-    saveToDatabase(setsByDate, 2)
+    saveToDatabase(setsByDate, 5)
 
 if __name__ == "__main__":
     __main__(sys.argv)
