@@ -1,5 +1,5 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/workout', 'app/stats', 'hbs!templates/login', 'hbs!templates/settings'],
+define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/workout', 'jsx/stats', 'hbs!templates/login', 'hbs!templates/settings'],
        function($, Handlebars, bootstrap, d3, router, weight, workout, stats, templateLogin, templateSettings) {
     "use strict";
 
@@ -105,13 +105,12 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         var et = new workout.ExerciseTypeView();
         var wl = new workout.WorkoutListView();
         var w  = new workout.WorkoutView();
-        var s  = new stats.StatsView();
 
         self.router.route("/workout/:id", function (id) { w.render(id); });
         self.router.route("/workout",     function ()   { wl.render(); });
         self.router.route("/workout/add-exercise",
                    function () { et.render(); });
-        self.router.route("/stats",       function ()   { s.render(); });
+        self.router.route("/stats",       function ()   { stats.render(); });
         self.router.route("/settings",    function()    { self.renderSettings(); });
         self.router.route("/login",       function()    { self.renderLogin(); });
         self.router.route("/new_user",    function()    { self.renderNewUser(); });

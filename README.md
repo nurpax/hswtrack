@@ -13,12 +13,10 @@ Running unit tests
  1. Start the hswtrack server in test config with: ```cabal run -- -e test```
  2. In another shell, run: ```cabal test```
 
-Compiling jsx to js
--------------------
+JSX building
+------------
 
-```
-./node_modules/.bin/jsx --watch static/app/jsx static/j-build
-```
+./node_modules/.bin/jsx --watch static/app/jsx static/jsx-build
 
 Building minified Javascript
 ----------------------------

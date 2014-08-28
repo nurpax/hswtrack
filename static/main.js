@@ -1,6 +1,7 @@
 requirejs.config({
     paths: {
         app: 'app',
+        jsx: 'jsx-build',
         d3: 'lib/d3/d3.v3.min',
         jquery: 'lib/jquery-2.0.3/jquery.min',
         bootstrap: 'lib/bootstrap-3.0.0/js/bootstrap.min',
@@ -8,7 +9,8 @@ requirejs.config({
         underscore: 'lib/underscore-1.6.0/underscore-min',
         history: 'lib/history',
         history_adapter: 'lib/history.adapter.native',
-        router: 'lib/router'
+        router: 'lib/router',
+        react: 'lib/reactjs-0.11.1/react',
     },
     hbs: {
         templateExtension: ".html"
