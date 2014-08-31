@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-define(['underscore', 'react'], function(_, React) {
+define(['jquery', 'underscore', 'react', 'jsx/model'], function($, _, React, model) {
   "use strict";
 
   var ExerciseList = React.createClass({
@@ -17,6 +17,7 @@ define(['underscore', 'react'], function(_, React) {
     getInitialState: function () {
       return { exerciseType: 'W' }
     },
+
     typeChanged: function (e) {
       this.setState({ exerciseType: e.target.value });
     },
@@ -68,35 +69,18 @@ define(['underscore', 'react'], function(_, React) {
   });
 
   var ExerciseEdit = React.createClass({
+
     getInitialState: function() {
-      return { data: [] };
+      this.props.model.setStateCB = function (s) { this.setState(s); }.bind(this);
+      return this.props.model;
     },
+
     componentDidMount: function() {
-      $.ajax({
-        type: "GET",
-        url: "/rest/exercise",
-        success: function(data) {
-          this.setState({data: data.payload});
-        }.bind(this),
-        error: function(xhr, status, err) {
-          console.error(this.props.url, status, err.toString());
-        }.bind(this)
-      });
+      this.props.model.load();
     },
 
     handleExerciseSubmit: function (exercise) {
-      var exercises = this.state.data;
-      $.ajax({
-        url: "/rest/exercise",
-        type: "POST",
-        data: exercise,
-        success: function (resp) {
-          this.setState({ data: exercises.concat([resp.payload]) });
-        }.bind(this),
-        error: function(xhr, status, err) {
-          console.error(this.props.url, status, err.toString());
-        }.bind(this)
-      });
+      this.props.model.add(exercise);
     },
 
     render: function () {
@@ -104,7 +88,7 @@ define(['underscore', 'react'], function(_, React) {
         <div>
           <h4>Existing exercises:</h4>
           <ul className="list-unstyled">
-            <ExerciseList exercises={this.state.data}/>
+            <ExerciseList exercises={this.state.exercises}/>
             <NewExerciseForm onExerciseSubmit={this.handleExerciseSubmit}/>
           </ul>
         </div>
@@ -112,10 +96,12 @@ define(['underscore', 'react'], function(_, React) {
     }
   });
 
+  var exerciseModel = new model.ExerciseModel();
+
   var renderExerciseEditor = function () {
     React.renderComponent(
       <div>
-        <ExerciseEdit />
+        <ExerciseEdit model={exerciseModel} />
         <a href="/workout">Back to workouts..</a>
       </div>,
       document.getElementById('app-container')
