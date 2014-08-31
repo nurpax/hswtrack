@@ -3,6 +3,17 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
 
   var Class = obj.Class;
 
+  function calcExerciseStats(e) {
+    if (e.type == "BW") {
+      return _.reduce(e.sets, function (a, s) { return a+s.reps; }, 0);
+    }
+    else if (e.type == "W") {
+      return _.reduce(e.sets, function (a, s) { return a+s.reps*s.weight; }, 0);
+    }
+    console.error("unknown type "+e.type);
+  }
+
+
   var ExerciseModel = Class.extend({
     init: function() {
       this.exercises  = [];
@@ -41,6 +52,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
   });
 
   return {
-    'ExerciseModel': ExerciseModel
+    'ExerciseModel': ExerciseModel,
+    'calcExerciseStats': calcExerciseStats
   };
 });

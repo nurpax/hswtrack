@@ -1,25 +1,15 @@
 /** @jsx React.DOM */
-define(['underscore', 'react'], function(_, React) {
+define(['underscore', 'react', 'jsx/model'], function(_, React, model) {
   "use strict";
 
   function dateString (v) {
     return (new Date(v)).toLocaleString();
   }
 
-  function calcStats(e) {
-    if (e.type == "BW") {
-      return _.reduce(e.sets, function (a, s) { return a+s.reps; }, 0);
-    }
-    else if (e.type == "W") {
-      return _.reduce(e.sets, function (a, s) { return a+s.reps*s.weight; }, 0);
-    }
-    console.error("unknown type "+e.type);
-  }
-
   var Exercise = React.createClass({
     render: function() {
       var sets, unitKgOrReps;
-      var total = calcStats(this.props);
+      var total = model.calcExerciseStats(this.props);
       if (this.props.type == "BW") {
         unitKgOrReps = "";
         sets = this.props.sets.map(function (s) {
