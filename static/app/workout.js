@@ -3,36 +3,6 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
 
     var View = view.View;
 
-    // Page for adding new exercise types
-    var ExerciseTypeView = View.extend({
-        init: function () {
-            var self = this;
-            this._super();
-            this.exercises = new model.ExerciseTypes();
-            this.exercises.setUpdateHandler(function (c) { self.renderExerciseList(); });
-        },
-
-        renderExerciseList: function () {
-            var self = this;
-            $("#app-container").html(templateNewExercise({ exercises: self.exercises.exerciseTypes }));
-
-            $("form#new-exercise").each(function () {
-                var form = this;
-                $("button#new-workout", form).click(function (e) {
-                    e.preventDefault();
-                    var exerciseName = $("input#exercise-name", form).val();
-                    var type         = $("input[name=exercise-type-radios]:checked", form).val();
-
-                    self.exercises.addExercise({ name: exerciseName, type:type });
-                });
-            });
-        },
-
-        render: function () {
-            this.exercises.load();
-        }
-    });
-
     var WorkoutView = View.extend({
 
         init: function (w) {
@@ -233,7 +203,6 @@ define(['jquery', 'handlebars', 'app/model', 'app/view', 'hbs!templates/workouts
     // export
     return {
         'WorkoutView': WorkoutView,
-        'WorkoutListView': WorkoutListView,
-        'ExerciseTypeView': ExerciseTypeView,
+        'WorkoutListView': WorkoutListView
     };
 });

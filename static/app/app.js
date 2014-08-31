@@ -1,6 +1,6 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/workout', 'jsx/stats', 'hbs!templates/login', 'hbs!templates/settings'],
-       function($, Handlebars, bootstrap, d3, router, weight, workout, stats, templateLogin, templateSettings) {
+define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/workout', 'jsx/stats', 'jsx/exerciseEdit', 'hbs!templates/login', 'hbs!templates/settings'],
+       function($, Handlebars, bootstrap, d3, router, weight, workout, stats, exerciseEdit, templateLogin, templateSettings) {
     "use strict";
 
     function loadAppContext() {
@@ -102,14 +102,12 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         }});
 
         var weightView = new weight.WeightView();
-        var et = new workout.ExerciseTypeView();
         var wl = new workout.WorkoutListView();
         var w  = new workout.WorkoutView();
 
+        self.router.route("/exercise/edit", function () { exerciseEdit.render(); });
         self.router.route("/workout/:id", function (id) { w.render(id); });
         self.router.route("/workout",     function ()   { wl.render(); });
-        self.router.route("/workout/add-exercise",
-                   function () { et.render(); });
         self.router.route("/stats",       function ()   { stats.render(); });
         self.router.route("/settings",    function()    { self.renderSettings(); });
         self.router.route("/login",       function()    { self.renderLogin(); });
