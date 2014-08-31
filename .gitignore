@@ -10,3 +10,5 @@ cabal.sandbox.config
 /hswtrack.tix
 /hpc_*.html
 /.hpc
+/node_modules
+/static/jsx-build
