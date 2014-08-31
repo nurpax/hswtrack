@@ -13,6 +13,20 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     console.error("unknown type "+e.type);
   }
 
+  function loadExerciseTypes() {
+    return $.ajax({
+      type: "GET",
+      url: "/rest/exercise"
+    });
+  }
+
+  function loadWorkout(id) {
+    return $.ajax({
+      type: "GET",
+      url: "/rest/workout",
+      data: { id: id }
+    });
+  }
 
   var ExerciseModel = Class.extend({
     init: function() {
@@ -21,17 +35,11 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     },
 
     load: function (cb) {
-      $.ajax({
-        type: "GET",
-        url: "/rest/exercise",
-        success: function(data) {
-          this.exercises = data.payload;
-          this.setStateCB(this);
-        }.bind(this),
-        error: function(xhr, status, err) {
-          console.error(this.props.url, status, err.toString());
-        }.bind(this)
-      });
+      $.when(loadExerciseTypes())
+          .done(function (data) {
+            this.exercises = data.payload;
+            this.setStateCB(this);
+          }.bind(this));
     },
 
     add: function (e) {
@@ -48,11 +56,49 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         }.bind(this)
       });
     }
+  });
+
+  var WorkoutModel = Class.extend({
+    init: function(id) {
+      this.workout = { id: id, exercises: [] };
+      this.exerciseTypes = [];
+      this.setStateCB = null;
+    },
+
+    load: function (cb) {
+      $.when(loadWorkout(this.workout.id), loadExerciseTypes())
+          .done(function (w, e) {
+            this.workout = w[0].payload;
+            this.exerciseTypes = e[0].payload;
+            this.setStateCB(this);
+          }.bind(this));
+    },
+
+    addSet: function (params) {
+      $.ajax({ url: "/rest/workout/exercise",
+              type: "POST",
+              data: params,
+              success: function (resp) {
+                this.load(); // FIXME just force reloading the whole thing now
+              }.bind(this)
+      });
+    },
+
+    rmSet: function (params) {
+      $.ajax({ url: "/rest/workout/exercise",
+              type: "DELETE",
+              data: params,
+              success: function (resp) {
+                this.load(); // FIXME just force reloading the whole thing now
+              }.bind(this)
+      });
+    },
 
   });
 
   return {
+    'calcExerciseStats': calcExerciseStats,
     'ExerciseModel': ExerciseModel,
-    'calcExerciseStats': calcExerciseStats
+    'WorkoutModel': WorkoutModel,
   };
 });

@@ -25,8 +25,8 @@ body {
   stroke-width: 1.5px;
 }
 
-.sets_total {
-  border-top:thin solid gray;
+table.sets {
+  border-bottom:thin solid gray;
 }
 
 .bg_fade_in { /* start */

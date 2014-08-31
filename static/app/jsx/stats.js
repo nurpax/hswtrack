@@ -49,7 +49,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
         </ul>
         <div className="tab-content">
           <div className="tab-pane active" id="history-tab">
-            <WorkoutList />,
+            <WorkoutList />
           </div>
           <div className="tab-pane" id="pr-tab">tab2</div>
         </div>
