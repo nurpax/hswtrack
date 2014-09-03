@@ -49,12 +49,6 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
   });
 
   var Exercise = React.createClass({
-    getDefaultProps: function () {
-      return {
-        readonly: true
-      }
-    },
-
     render: function () {
       var sets, unitKgOrReps;
       var total = model.calcExerciseStats(this.props);
@@ -237,14 +231,19 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
     },
 
     render: function () {
+      var addExercise = null;
+      if (this.state.canEdit) {
+        addExercise = <AddExerciseForm workout={this.state.workout}
+                                       onAddSetSubmit={this.handleAddSetSubmit}
+                                       exerciseTypes={this.state.exerciseTypes} />;
+      }
       return (
         <div>
           <Workout workout={this.state.workout}
+                   readonly={!this.state.canEdit}
                    onRmSetSubmit={this.handleRmSetSubmit}
                    onAddSetSubmit={this.handleAddSetSubmit} />
-          <AddExerciseForm workout={this.state.workout}
-                           onAddSetSubmit={this.handleAddSetSubmit}
-                           exerciseTypes={this.state.exerciseTypes} />
+          {addExercise}
         </div>
       );
     }

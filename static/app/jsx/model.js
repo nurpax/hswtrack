@@ -62,6 +62,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     init: function(id) {
       this.workout = { id: id, exercises: [] };
       this.exerciseTypes = [];
+      this.canEdit       = false;
       this.setStateCB = null;
     },
 
@@ -70,6 +71,10 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
           .done(function (w, e) {
             this.workout = w[0].payload;
             this.exerciseTypes = e[0].payload;
+            // Is this workout editable by the currently logged in user?
+            if (w[0].loggedIn) {
+              this.canEdit = w[0].userId == w[0].payload.userId;
+            }
             this.setStateCB(this);
           }.bind(this));
     },
