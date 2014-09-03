@@ -84,6 +84,14 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
     }
   });
 
+  var WorkoutTitle = React.createClass({
+    render: function () {
+      var url = "/workout/"+this.props.workout.id;
+      var timestamp = dateString(this.props.workout.time);
+      return <h3><a href={url}>Workout {this.props.workout.id}</a> <small>{timestamp}</small></h3>;
+    }
+  });
+
   var Workout = React.createClass({
     getDefaultProps: function () {
       return {
@@ -109,10 +117,9 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
       }.bind(this));
 
       var url = "/workout/"+this.props.workout.id;
-      var timestamp = dateString(this.props.workout.time);
       return (
         <div>
-          <h3><a href={url}>Workout {this.props.workout.id}</a> <small>{timestamp}</small></h3>
+          <WorkoutTitle workout={this.props.workout} />
           {exs}
         </div>
       )
@@ -231,6 +238,9 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
     render: function () {
       return (
         <div>
+          <label>
+            <input type="checkbox" />Allow public viewing?
+          </label>
           <Workout workout={this.state.workout}
                    onRmSetSubmit={this.handleRmSetSubmit}
                    onAddSetSubmit={this.handleAddSetSubmit} />
@@ -245,15 +255,51 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
   var render = function (id) {
     React.renderComponent(
       <div>
-        <WorkoutEdit model={new model.WorkoutModel(id)}/>
+        <WorkoutEdit model={new model.Workout(id)}/>
       </div>,
       document.getElementById('app-container')
     );
   };
 
+  var WorkoutList = React.createClass({
+    getInitialState: function () {
+      this.props.model.setStateCB = function (s) { this.setState(s); }.bind(this);
+      return this.props.model;
+    },
+
+    componentDidMount: function () {
+      this.props.model.load();
+    },
+
+    handleNewWorkout: function () {
+      this.props.model.newWorkout();
+    },
+
+    render: function () {
+      var workouts = this.state.workouts.map(function (w) {
+        return <WorkoutTitle key={w.id} workout={w} />;
+      }.bind(this));
+      return (
+        <div>
+          <h2>Today's workouts</h2>
+          {workouts}
+          <button onClick={this.handleNewWorkout} className="btn btn-primary">Add a Workout</button>
+        </div>
+      );
+    }
+  });
+
+  var renderToday = function () {
+    React.renderComponent(
+      <WorkoutList model={new model.WorkoutList()}/>,
+      document.getElementById('app-container')
+    );
+  };
+
   return {
-    'render': render,
-    'Workout': Workout,
-    'Exercise': Exercise
+    'render':      render,
+    'renderToday': renderToday,
+    'Workout':     Workout,
+    'Exercise':    Exercise
   }
 });

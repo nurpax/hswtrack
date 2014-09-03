@@ -96,7 +96,7 @@ define(['jquery', 'underscore', 'react', 'jsx/model'], function($, _, React, mod
     }
   });
 
-  var exerciseModel = new model.ExerciseModel();
+  var exerciseModel = new model.Exercise();
 
   var renderExerciseEditor = function () {
     React.renderComponent(
