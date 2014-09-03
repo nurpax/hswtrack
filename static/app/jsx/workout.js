@@ -120,6 +120,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
       return (
         <div>
           <WorkoutTitle workout={this.props.workout} />
+          {this.props.readonly ? null : <label><input type="checkbox" /> Allow public viewing?</label>}
           {exs}
         </div>
       )
@@ -238,9 +239,6 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
     render: function () {
       return (
         <div>
-          <label>
-            <input type="checkbox" />Allow public viewing?
-          </label>
           <Workout workout={this.state.workout}
                    onRmSetSubmit={this.handleRmSetSubmit}
                    onAddSetSubmit={this.handleAddSetSubmit} />
