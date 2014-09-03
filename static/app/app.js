@@ -106,8 +106,7 @@ define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'app/
         var w  = new workout.WorkoutView();
 
         self.router.route("/exercise/edit", function () { exerciseEdit.render(); });
-        self.router.route("/workout-new/:id", function (id) { jsxWorkout.render(id); });
-        self.router.route("/workout/:id", function (id) { w.render(id); });
+        self.router.route("/workout/:id", function (id) { jsxWorkout.render(id); });
         self.router.route("/workout",     function ()   { wl.render(); });
         self.router.route("/stats",       function ()   { stats.render(); });
         self.router.route("/settings",    function()    { self.renderSettings(); });
