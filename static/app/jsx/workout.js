@@ -21,7 +21,9 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
     },
 
     render: function () {
-      var rmSet = <td><a setId={this.props.setId} onClick={this.handleRmSet} href="#">&times;</a></td>;
+      var rmSet = this.props.readonly ?
+                  null :
+                  <td><a setId={this.props.setId} onClick={this.handleRmSet} href="#">&times;</a></td>;
       if (this.props.type == "BW") {
         return (
           <tr>
@@ -47,6 +49,12 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
   });
 
   var Exercise = React.createClass({
+    getDefaultProps: function () {
+      return {
+        readonly: true
+      }
+    },
+
     render: function () {
       var sets, unitKgOrReps;
       var total = model.calcExerciseStats(this.props);
@@ -59,7 +67,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
 
       sets = this.props.sets.map(function (s) {
         return <Set key={s.id} type={type} reps={s.reps} weight={s.weight} setId={s.id}
-                    onRmSetSubmit={this.props.onRmSetSubmit} />;
+                    readonly={this.props.readonly} onRmSetSubmit={this.props.onRmSetSubmit} />;
       }.bind(this));
 
       return (
@@ -77,6 +85,12 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
   });
 
   var Workout = React.createClass({
+    getDefaultProps: function () {
+      return {
+        readonly: true
+      }
+    },
+
     render: function () {
       var wid = this.props.workout.id;
       var exs = this.props.workout.exercises.map(function (e) {
@@ -87,8 +101,9 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
         var id = wid + '-' + e.id;
         return (
           <div key={id}>
-            <Exercise type={e.type} sets={e.sets} name={e.name} onRmSetSubmit={this.props.onRmSetSubmit} />
-            {addSet}
+            <Exercise type={e.type} sets={e.sets} name={e.name} readonly={this.props.readonly}
+                      onRmSetSubmit={this.props.onRmSetSubmit} />
+            {this.props.readonly ? null : addSet}
           </div>
         )
       }.bind(this));
