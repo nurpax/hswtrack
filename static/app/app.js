@@ -1,6 +1,6 @@
 
-define(['jquery', 'handlebars', 'bootstrap', 'd3', 'router', 'app/weight', 'jsx/workout', 'jsx/stats', 'jsx/exerciseEdit', 'hbs!templates/login', 'hbs!templates/settings'],
-       function($, Handlebars, bootstrap, d3, router, weight, workout, stats, exerciseEdit, templateLogin, templateSettings) {
+define(['jquery', 'handlebars', 'd3', 'router', 'app/weight', 'jsx/workout', 'jsx/stats', 'jsx/exerciseEdit', 'hbs!templates/login', 'hbs!templates/settings'],
+       function($, Handlebars, d3, router, weight, workout, stats, exerciseEdit, templateLogin, templateSettings) {
     "use strict";
 
     function loadAppContext() {

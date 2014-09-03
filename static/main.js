@@ -4,7 +4,6 @@ requirejs.config({
         jsx: 'jsx-build',
         d3: 'lib/d3/d3.v3.min',
         jquery: 'lib/jquery-2.0.3/jquery.min',
-        bootstrap: 'lib/bootstrap-3.0.0/js/bootstrap.min',
         handlebars: 'lib/handlebars-1.3.0/handlebars-v1.3.0',
         underscore: 'lib/underscore-1.6.0/underscore-min',
         history: 'lib/history',
@@ -25,7 +24,6 @@ requirejs.config({
         d3: {
             exports: "d3"
         },
-        bootstrap: ['jquery'],
         history: {
             exports: "History"
         },
