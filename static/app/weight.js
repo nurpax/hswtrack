@@ -104,6 +104,10 @@ define(['jquery', 'd3', 'handlebars', 'underscore', 'app/view', 'app/model', 'hb
         renderHome: function() {
             var self = this;
 
+            Handlebars.registerHelper('round', function(num, dec) {
+                return new Handlebars.SafeString(num.toFixed(dec));
+            });
+
             $("#app-container").html(templateHome(self.model.app.context));
 
             self.model.weights.setUpdateHandler(function (w) { self.renderPlot(w); });

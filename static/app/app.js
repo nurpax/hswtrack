@@ -1,15 +1,7 @@
 
-define(['jquery', 'handlebars', 'router', 'app/weight', 'jsx/workout', 'jsx/stats', 'jsx/exerciseEdit', 'jsx/settings', 'hbs!templates/login'],
-       function($, Handlebars, router, weight, workout, stats, exerciseEdit, settings, templateLogin) {
+define(['jquery', 'router', 'app/weight', 'jsx/login', 'jsx/workout', 'jsx/stats', 'jsx/exerciseEdit', 'jsx/settings', 'hbs!templates/login'],
+       function($, router, weight, login, workout, stats, exerciseEdit, settings, templateLogin) {
     "use strict";
-
-    function loadAppContext() {
-        return $.ajax({
-            type: "GET",
-            url: "/rest/app",
-            data: []
-        });
-    }
 
     function App() {
         this.router = new Router();
@@ -22,29 +14,22 @@ define(['jquery', 'handlebars', 'router', 'app/weight', 'jsx/workout', 'jsx/stat
     };
 
     App.prototype.renderLoginScreen = function(context, url) {
-        var self = this;
-        var ctx = context ? context : {};
-
-        if (url == "new_user")
-            ctx.loginForm = false;
-        else if (url == "login")
-            ctx.loginForm = true;
-
-        $("#app-container").html(templateLogin(ctx));
-
-        $("form#login").submit(function (e) {
-            e.preventDefault();
-            $.ajax({ url: "/rest/"+url,
-                     type: "POST",
-                     data: $(this).serialize(),
-                     success: function(resp) {
-                         if (!resp.loggedIn) {
-                             self.renderLoginScreen(resp, url);
-                         } else {
-                             self.router.navigate("/");
-                         }
-                     }});
-        });
+      var self     = this;
+      var ctx      = context ? context : {};
+      var onSubmit = function (formParams) {
+        $.ajax({url: "/rest/"+url,
+                type: "POST",
+                data: formParams,
+                success: function(resp) {
+                  if (!resp.loggedIn) {
+                    self.renderLoginScreen(resp, url);
+                  } else {
+                    self.router.navigate("/");
+                  }
+                }});
+        return false;
+      };
+      login.renderLogin(url, ctx, onSubmit);
     };
 
     App.prototype.renderNewUser = function() {
@@ -57,10 +42,6 @@ define(['jquery', 'handlebars', 'router', 'app/weight', 'jsx/workout', 'jsx/stat
 
     App.prototype.start = function () {
         var self = this;
-
-        Handlebars.registerHelper('round', function(num, dec) {
-            return new Handlebars.SafeString(num.toFixed(dec));
-        });
 
         // Instruct router to go to the login screen if any latter AJAX
         // call returns "Login required" 403.

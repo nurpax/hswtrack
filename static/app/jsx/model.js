@@ -50,9 +50,6 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         success: function (resp) {
           this.exercises = this.exercises.concat([resp.payload]);
           this.setStateCB(this);
-        }.bind(this),
-        error: function(xhr, status, err) {
-          console.error("/rest/exercise", status, err.toString());
         }.bind(this)
       });
     }

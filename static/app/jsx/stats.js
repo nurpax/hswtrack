@@ -17,9 +17,6 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
         url: "/rest/stats/workout",
         success: function(data) {
           this.setState({data: data.payload});
-        }.bind(this),
-        error: function(xhr, status, err) {
-          console.error(this.props.url, status, err.toString());
         }.bind(this)
       });
     },
