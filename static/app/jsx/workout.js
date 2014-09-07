@@ -93,6 +93,10 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
       }
     },
 
+    handlePublicCheckbox: function (e) {
+      this.props.onMakePublic(this.props.workout, e.target.checked);
+    },
+
     render: function () {
       var wid = this.props.workout.id;
       var exs = this.props.workout.exercises.map(function (e) {
@@ -114,7 +118,9 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
       return (
         <div>
           <WorkoutTitle workout={this.props.workout} />
-          {this.props.readonly ? null : <label><input type="checkbox" /> Allow public viewing?</label>}
+          {this.props.readonly ? null :
+            <label><input onChange={this.handlePublicCheckbox} checked={this.props.workout.public}
+                          type="checkbox" /> Allow public viewing?</label>}
           {exs}
         </div>
       )
@@ -230,6 +236,10 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
       this.props.model.rmSet(e);
     },
 
+    handleMakePublic: function (w, pub) {
+      this.props.model.makePublic(w, pub);
+    },
+
     render: function () {
       var addExercise = null;
       if (this.state.canEdit) {
@@ -241,6 +251,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
         <div>
           <Workout workout={this.state.workout}
                    readonly={!this.state.canEdit}
+                   onMakePublic={this.handleMakePublic}
                    onRmSetSubmit={this.handleRmSetSubmit}
                    onAddSetSubmit={this.handleAddSetSubmit} />
           {addExercise}

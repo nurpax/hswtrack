@@ -97,6 +97,17 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
                 this.load(); // FIXME just force reloading the whole thing now
               }.bind(this)
       });
+    },
+
+    makePublic: function (workout, setPublic) {
+      $.ajax({ url: "/rest/workout",
+              type: "PUT",
+              dataType: "json",
+              data: JSON.stringify({ id: workout.id, public: setPublic }),
+              success: function (resp) {
+                this.load(); // FIXME just force reloading the whole thing now
+              }.bind(this)
+      });
     }
   });
 
