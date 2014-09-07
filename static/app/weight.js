@@ -1,4 +1,4 @@
-define(['jquery', 'handlebars', 'underscore', 'app/view', 'app/model', 'hbs!templates/weight', 'hbs!templates/weight-notes'], function($, Handlebars, _, view, model, templateHome, templateNotes) {
+define(['jquery', 'd3', 'handlebars', 'underscore', 'app/view', 'app/model', 'hbs!templates/weight', 'hbs!templates/weight-notes'], function($, d3, Handlebars, _, view, model, templateHome, templateNotes) {
     "use strict";
 
     // View workout stats/history
