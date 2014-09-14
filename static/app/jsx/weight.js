@@ -4,6 +4,66 @@ define(['underscore', 'react', 'app/jsx/model'], function(_, React, model) {
 
   var DEFAULT_DAYS = 90;
 
+  var Comment = React.createClass({
+    deleteComment: function () {
+      if (!confirm("OK to delete note?"))
+        return false;
+      this.props.onDeleteComment(this.props.id);
+      return false;
+    },
+
+    render: function () {
+      return <li>{this.props.text} <a onClick={this.deleteComment} href="#">&times;</a></li>
+    }
+  });
+
+  var CommentList = React.createClass({
+    getInitialState: function () {
+      this.props.model.setStateCB = function (s) { this.setState(s); }.bind(this);
+      return this.props.model;
+    },
+
+    handleDeleteComment: function (id) {
+      this.props.model.deleteById(id);
+    },
+
+    handleAddComment: function () {
+      var text = this.refs.comment.getDOMNode().value.trim();
+      if (!text) {
+        return false;
+      }
+      this.props.model.addNote(text);
+      this.refs.comment.getDOMNode().value = '';
+      return false;
+    },
+
+    render: function () {
+      var comments = this.state.notes.map(function (c) {
+        return <Comment onDeleteComment={this.handleDeleteComment}
+                        key={c.id}
+                        id={c.id}
+                        text={c.text}/>;
+      }.bind(this));
+
+      return (
+        <div>
+          <h4>Comments</h4>
+          <div className="col-md-6">
+            <ul className="list-unstyled">
+              {comments}
+              <li>
+                <form onSubmit={this.handleAddComment}>
+                  <input ref="comment" size="24" type="text" placeholder="Add comment.."></input>
+                  <button className="btn btn-default btn-xs">Save</button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        </div>
+      );
+    }
+  });
+
   var TodayWeight = React.createClass({
     handleClearWeight: function () { 
       this.props.onClearWeight();
@@ -32,8 +92,10 @@ define(['underscore', 'react', 'app/jsx/model'], function(_, React, model) {
         return (
           <div className="well">
             <p>Please enter your weight (kg):</p>
-            <input ref="weight" type="number" placeholder="Enter weight.."></input>
-            <button onClick={this.handleWeightSubmit} className="btn btn-primary">Save</button>
+            <form onSubmit={this.handleWeightSubmit}>
+              <input ref="weight" type="number" placeholder="Enter weight.."></input>
+              <button className="btn btn-primary">Save</button>
+            </form>
           </div>
         );
       }
@@ -67,6 +129,8 @@ define(['underscore', 'react', 'app/jsx/model'], function(_, React, model) {
           <TodayWeight onWeightSubmit={this.setWeight}
                        onClearWeight={this.clearWeight}
                        weight={this.state.app.context.weight} />
+          <br/>
+          <CommentList model={this.state.notes}/>
         </div>
       );
     }
