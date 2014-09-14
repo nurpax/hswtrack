@@ -231,6 +231,15 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         this.app     = a[0].payload;
         this.weights = new Weights(w[0].payload);
         this.notes   = new Notes(n[0].payload);
+        this.selectedRange = selectedGraphDays;
+        this.setStateCB(this);
+      }.bind(this));
+    },
+
+    loadWeights: function (selectedGraphDays) {
+      $.when(loadWeights(selectedGraphDays)).done(function (w) {
+        this.weights = new Weights(w.payload);
+        this.selectedRange = selectedGraphDays;
         this.setStateCB(this);
       }.bind(this));
     },
