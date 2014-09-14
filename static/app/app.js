@@ -1,6 +1,6 @@
 
-define(['jquery', 'router', 'app/weight', 'jsx/login', 'jsx/workout', 'jsx/stats', 'jsx/exerciseEdit', 'jsx/settings', 'hbs!templates/login'],
-       function($, router, weight, login, workout, stats, exerciseEdit, settings, templateLogin) {
+define(['jquery', 'router', 'jsx/login', 'jsx/workout', 'jsx/weight', 'jsx/stats', 'jsx/exerciseEdit', 'jsx/settings', 'hbs!templates/login'],
+       function($, router, login, workout, weight, stats, exerciseEdit, settings, templateLogin) {
     "use strict";
 
     function App() {
@@ -49,8 +49,6 @@ define(['jquery', 'router', 'app/weight', 'jsx/login', 'jsx/workout', 'jsx/stats
             self.checkLogin(jqXHR);
         }});
 
-        var weightView = new weight.WeightView();
-
         self.router.route("/exercise/edit", function () { exerciseEdit.render(); });
         self.router.route("/workout/:id", function (id) { workout.render(id); });
         self.router.route("/workout",     function ()   { workout.renderToday(); });
@@ -58,7 +56,7 @@ define(['jquery', 'router', 'app/weight', 'jsx/login', 'jsx/workout', 'jsx/stats
         self.router.route("/settings",    function()    { settings.render(); });
         self.router.route("/login",       function()    { self.renderLogin(); });
         self.router.route("/new_user",    function()    { self.renderNewUser(); });
-        self.router.route("/",            function()    { weightView.render(); });
+        self.router.route("/",            function()    { weight.render(); });
         self.router.start();
     };
 

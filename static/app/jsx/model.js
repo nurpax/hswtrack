@@ -143,8 +143,133 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     },
   });
 
+  function loadAppContext() {
+    return $.ajax({
+      type: "GET",
+      url: "/rest/app",
+      data: []
+    });
+  }
+
+  function loadWeights(ndays) {
+    return $.ajax({
+      type: "GET",
+      url: "/rest/weights",
+      data: { days: ndays }
+    });
+  }
+
+  function loadNotes() {
+    return $.ajax({
+      type: "GET",
+      url: "/rest/notes",
+      data: []
+    });
+  }
+
+  /*--------------------------------------------------------------*/
+  // Weight tracking
+  /*--------------------------------------------------------------*/
+
+  var Weights = Class.extend({
+    init: function(weights) {
+      this.weights = weights;
+      this.setStateCB = null;
+    },
+
+    addWeight: function (r) {
+      this.weights.push(r);
+    },
+
+    deleteWeight: function (r) {
+      this.weights = _.filter(this.weights, function (w) { return w.id != r.id; });
+    },
+
+    load: function (days) {
+      $.when(loadWeights(days)).done(function (w) {
+        this.weights = w.payload;
+        this.setStateCB(this);
+      }.bind(this));
+    }
+  });
+
+  var Notes = Class.extend({
+    init: function(n) {
+      this.notes = n;
+    },
+
+    deleteById: function (id_) {
+      $.ajax({ url: "/rest/note",
+              type: "DELETE",
+              data: { id: id_ },
+              success: function () {
+                this.notes = _.filter(this.notes, function (n) { return n.id != id_; });
+                this.setStateCB(this);
+              }.bind(this)
+      });
+    },
+
+    addNote: function (text) {
+      $.ajax({ url: "/rest/note",
+              type: "POST",
+              data: { text: text },
+              success: function (resp) {
+                this.notes.push(resp.payload);
+                this.setStateCB(this);
+              }.bind(this)
+      });
+    }
+
+  });
+
+  var WeightTop = Class.extend({
+    init: function() {
+    },
+
+    load: function(selectedGraphDays) {
+      $.when(loadAppContext(), loadWeights(selectedGraphDays), loadNotes()).done(function (a, w, n) {
+        this.app     = a[0].payload;
+        this.weights = new Weights(w[0].payload);
+        this.notes   = new Notes(n[0].payload);
+        this.setStateCB(this);
+      }.bind(this));
+    },
+
+    setWeight: function (newWeight) {
+      $.ajax({
+        type: "POST",
+        url: "/rest/weight",
+        data: { weight: newWeight },
+        success: function (r) {
+          var weight = r.payload;
+          this.app.context.weight = weight;
+          this.weights.addWeight(weight);
+          this.setStateCB(this);
+        }.bind(this)
+      });
+    },
+
+    clearWeight: function () {
+      if (this.app.context.weight) {
+        $.ajax({
+          type: "DELETE",
+          url: "/rest/weight",
+          data: { id: this.app.context.weight.id },
+          success: function () {
+            this.weights.deleteWeight(this.app.context.weight);
+            this.app.context.weight = null;
+            this.setStateCB(this);
+          }.bind(this)
+        });
+      }
+    }
+
+  });
+
+
   return {
     'calcExerciseStats': calcExerciseStats,
+    'WeightTop': WeightTop,
     'Exercise': Exercise,
     'Workout': Workout,
     'WorkoutList': WorkoutList
