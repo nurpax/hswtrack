@@ -66,12 +66,13 @@ test-suite resttest
                , http-client
                , HUnit
                , lens
+               , lens-aeson
                , test-framework
                , test-framework-hunit
                , text
                , time
                , vector
-               , wreq
+               , wreq >= 0.1.0.1
 
 executable dbbench
   default-language: Haskell2010
