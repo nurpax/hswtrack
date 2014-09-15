@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-define(['jquery', 'underscore', 'react', 'jsx/model'], function($, _, React, model) {
+define(['underscore', 'react', 'jsx/model'], function(_, React, model) {
   "use strict";
 
   var ExerciseList = React.createClass({
