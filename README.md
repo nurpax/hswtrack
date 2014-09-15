@@ -16,7 +16,10 @@ Running unit tests
 JSX building
 ------------
 
+```
+npm install react-tools
 ./node_modules/.bin/jsx --watch static/app/jsx static/jsx-build
+```
 
 Building minified Javascript
 ----------------------------
