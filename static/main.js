@@ -3,12 +3,12 @@ requirejs.config({
         app: 'app',
         jsx: 'jsx-build',
         d3: 'lib/d3/d3.v3.min',
-        jquery: 'lib/jquery-2.0.3/jquery.min',
+        jquery: 'lib/jquery-2.1.2-ajax-only.min',
         underscore: 'lib/underscore-1.6.0/underscore-min',
         history: 'lib/history',
         history_adapter: 'lib/history.adapter.native',
         router: 'lib/router',
-        react: 'lib/reactjs-0.11.1/react',
+        react: 'lib/reactjs-0.11.1/react.min',
     },
     shim: {
         d3: {
