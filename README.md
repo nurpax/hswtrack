@@ -29,6 +29,15 @@ cd <project_root>
 r.js  -o app.build.js
 ```
 
+Building custom jquery with only AJAX features
+----------------------------------------------
+
+From http://stackoverflow.com/questions/15853584/extract-ajax-part-from-jquery-library:
+
+./node_modules/.bin/grunt custom:-css,-deprecated,-dimensions,-effects,-event-alias,-offset,-sizzle
+
+For more details, see: https://github.com/jquery/jquery#how-to-build-your-own-jquery
+
 Tech details
 ----------------
 
