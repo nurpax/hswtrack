@@ -14,8 +14,9 @@ module Site.Util (
   , getInt64Param
   , getTextParam
   , maybeGetTextParam
-  , withDb
+  , getJSON
   , writeJSON
+  , withDb
   , module X
   , HttpError(..)
   ) where
@@ -24,6 +25,7 @@ module Site.Util (
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
 import           Control.Monad.Trans.Either
+import qualified Data.Aeson as A
 import           Data.ByteString (ByteString)
 import           Data.Int (Int64)
 import qualified Data.Text as T
@@ -31,7 +33,6 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Database.SQLite.Simple as S
 import           Snap.Core as X
-import           Snap.Extras.JSON (writeJSON)
 import           Snap.Snaplet as X
 import           Snap.Snaplet.Auth as X
 import           Snap.Snaplet.SqliteSimple
@@ -42,6 +43,43 @@ import           Site.Application as X
 data HttpError = HttpError Int String
 
 type H = Handler App App
+
+
+-------------------------------------------------------------------------------
+-- | Mark response as 'application/json'
+jsonResponse :: MonadSnap m => m ()
+jsonResponse = modifyResponse $ setHeader "Content-Type" "application/json"
+
+-------------------------------------------------------------------------------
+-- | Set MIME to 'application/json' and write given object into
+-- 'Response' body.
+writeJSON :: (MonadSnap m, A.ToJSON a) => a -> m ()
+writeJSON a = do
+  jsonResponse
+  writeLBS . A.encode $ a
+
+-------------------------------------------------------------------------------
+-- | Try to parse request body as JSON with a default max size of
+-- 50000.
+getJSON :: (MonadSnap m, A.FromJSON a) => m (Either String a)
+getJSON = getBoundedJSON 50000
+
+
+-------------------------------------------------------------------------------
+-- | Parse request body into JSON or return an error string.
+getBoundedJSON
+    :: (MonadSnap m, A.FromJSON a)
+    => Int64
+    -- ^ Maximum size in bytes
+    -> m (Either String a)
+getBoundedJSON n = do
+  bodyVal <- A.decode `fmap` readRequestBody n
+  return $ case bodyVal of
+    Nothing -> Left "Can't find JSON data in POST body"
+    Just v -> case A.fromJSON v of
+                A.Error e -> Left e
+                A.Success a -> Right a
+
 
 -- | Discard anything after this and return given status code to HTTP
 -- client immediately.
