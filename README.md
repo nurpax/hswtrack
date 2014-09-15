@@ -13,6 +13,13 @@ Running unit tests
  1. Start the hswtrack server in test config with: ```cabal run -- -e test```
  2. In another shell, run: ```cabal test```
 
+Compiling jsx to js
+-------------------
+
+```
+./node_modules/.bin/jsx --watch static/app/jsx static/j-build
+```
+
 Building minified Javascript
 ----------------------------
 
@@ -27,4 +34,4 @@ Tech details
 
 Written in Haskell using the Snap Framework using Sqlite3 for persistence.
 
-Departs from typical Snap apps in that it doesn't use Heist templating.  Rather all HTML templating is done in JavaScript on the client using Handlebars.js.  Various other JavaScript libraries like JQuery, RequireJS and D3.js are used.
+Departs from typical Snap apps in that it doesn't use Heist templating.  Rather all HTML templating is done in JavaScript on the client using ReactJS.
