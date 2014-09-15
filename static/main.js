@@ -4,22 +4,12 @@ requirejs.config({
         jsx: 'jsx-build',
         d3: 'lib/d3/d3.v3.min',
         jquery: 'lib/jquery-2.0.3/jquery.min',
-        handlebars: 'lib/handlebars-1.3.0/handlebars-v1.3.0',
         underscore: 'lib/underscore-1.6.0/underscore-min',
         history: 'lib/history',
         history_adapter: 'lib/history.adapter.native',
         router: 'lib/router',
         react: 'lib/reactjs-0.11.1/react',
     },
-    hbs: {
-        templateExtension: ".html"
-    },
-    packages: [
-    {
-      name: 'hbs',
-      location: 'lib/requirejs-hbs',
-      main: 'hbs'
-    }],
     shim: {
         d3: {
             exports: "d3"

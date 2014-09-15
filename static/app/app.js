@@ -1,6 +1,6 @@
 
-define(['jquery', 'router', 'jsx/login', 'jsx/workout', 'jsx/weight', 'jsx/stats', 'jsx/exerciseEdit', 'jsx/settings', 'hbs!templates/login'],
-       function($, router, login, workout, weight, stats, exerciseEdit, settings, templateLogin) {
+define(['jquery', 'router', 'jsx/login', 'jsx/workout', 'jsx/weight', 'jsx/stats', 'jsx/exerciseEdit', 'jsx/settings'],
+       function($, router, login, workout, weight, stats, exerciseEdit, settings) {
     "use strict";
 
     function App() {

@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-define(['underscore', 'react', 'd3', 'app/jsx/model'], function(_, React, d3, model) {
+define(['underscore', 'react', 'd3', 'jsx/model'], function(_, React, d3, model) {
   "use strict";
 
   var DEFAULT_DAYS = 90;
