@@ -1,6 +1,8 @@
 /** @jsx React.DOM */
-define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, model, workout) {
+define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React, model, components) {
   "use strict";
+
+  var Unhide = components.Unhide;
 
   function dateString (v) {
     return (new Date(v)).toLocaleString();
@@ -156,10 +158,9 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
       var inp = null;
       if (this.props.exercise.type == 'BW') {
         inp =
-          <div className="collapse-group">
-            <input className="collapse form-control" type="number" ref="weight" placeholder="Weight.." />
-            <a id="collapse-weighted" className="btn" href="#">Advanced &raquo;</a>
-          </div>;
+          <Unhide title="Advanced &raquo;">
+            <input className="form-control" type="number" ref="weight" placeholder="Weight.." />
+          </Unhide>
       } else if (this.props.exercise.type == 'W') {
         inp = <input className="form-control" type="number" ref="weight"  placeholder="Weight.." />;
       }
@@ -254,6 +255,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
                    onMakePublic={this.handleMakePublic}
                    onRmSetSubmit={this.handleRmSetSubmit}
                    onAddSetSubmit={this.handleAddSetSubmit} />
+          <br/>
           {addExercise}
         </div>
       );

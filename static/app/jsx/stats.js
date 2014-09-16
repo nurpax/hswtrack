@@ -1,9 +1,10 @@
 /** @jsx React.DOM */
-define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, model, workout) {
+define(['underscore', 'react', 'jsx/model', 'jsx/components', 'jsx/workout'], function(_, React, model, components, workout) {
   "use strict";
 
   var Exercise = workout.Exercise;
   var Workout  = workout.Workout;
+  var Tabs     = components.Tabs;
 
   var WorkoutList = React.createClass({
     getInitialState: function() {
@@ -39,18 +40,12 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
 
   var renderStats = function () {
     React.renderComponent(
-      <div className="container">
-        <ul className="nav nav-tabs">
-          <li className="active"><a href="#history-tab" data-toggle="tab">History</a></li>
-          <li><a href="#pr-tab" data-toggle="tab">Personal Records</a></li>
-        </ul>
-        <div className="tab-content">
-          <div className="tab-pane active" id="history-tab">
-            <WorkoutList />
-          </div>
-          <div className="tab-pane" id="pr-tab">tab2</div>
+      <Tabs tabs={["History", "Personal Records"]}>
+        <WorkoutList />
+        <div>
+          Personal records not implemented yet.
         </div>
-      </div>,
+      </Tabs>,
       document.getElementById('app-container')
     );
   };

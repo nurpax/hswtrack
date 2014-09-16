@@ -40,3 +40,10 @@ table.sets {
 .bg_fade_in.end {
     background-color: #fff;
 }
+
+.hide {
+  display: none;
+}
+
+.show {
+}
