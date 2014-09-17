@@ -5,6 +5,8 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
   var Unhide = components.Unhide;
 
   function dateString (v) {
+    if (!v)
+      return null;
     return (new Date(v)).toLocaleString();
   }
 
@@ -84,7 +86,8 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
     render: function () {
       var url = "/workout/"+this.props.workout.id;
       var timestamp = dateString(this.props.workout.time);
-      return <h3><a href={url}>Workout {this.props.workout.id}</a> <small>{timestamp}</small></h3>;
+      var pub = this.props.workout.public ? <small className="public">[public]</small> : null;
+      return <h3><a href={url}>Workout {this.props.workout.id}</a> <small>{timestamp}</small> {pub}</h3>;
     }
   });
 
