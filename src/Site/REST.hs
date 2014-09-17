@@ -143,6 +143,18 @@ restLoginError :: MonadSnap m => T.Text -> m ()
 restLoginError e =
   writeJSON (AppContext False (Just e) Nothing)
 
+wrapPayload :: Maybe Model.User -> Value -> Value
+wrapPayload Nothing v =
+  object [ "loggedIn"  .= False
+         , "payload"   .= v
+         ]
+wrapPayload (Just (Model.User uid login)) v =
+  object [ "loggedIn"  .= True
+         , "userId"    .= uid
+         , "userLogin" .= login
+         , "payload"   .= v
+         ]
+
 loginReqdResponse :: ToJSON a => (User -> EitherT HttpError H a) -> H ()
 loginReqdResponse action = with auth currentUser >>= go
   where
@@ -193,73 +205,52 @@ restAppContext = loginReqdResponse get
     get user@(Model.User _ login) = do
       today <- getToday
       (weight, options) <-
-        lift $ withDb $ \conn -> do
+        withDb $ \conn -> do
           weight <- Model.queryTodaysWeight conn user today
           options <- Model.queryOptions conn user
           return (weight, options)
       return $ AppContext True Nothing (Just (LoggedInContext login weight options))
 
 restClearWeight :: H ()
-restClearWeight = loginReqdResponse clear
-  where
-    clear user = do
-      weightId <- RowId <$> getInt64Param "id"
-      lift $ withDb $ \conn -> Model.deleteWeight conn user weightId
+restClearWeight = loginReqdResponse $ \user -> do
+  weightId <- RowId <$> getInt64Param "id"
+  withDb $ \conn -> Model.deleteWeight conn user weightId
 
 restSetWeight :: H ()
-restSetWeight = loginReqdResponse set
-  where
-    set user = do
-      today  <- getToday
-      weight <- getDoubleParam "weight"
-      lift $ withDb $ \conn -> do
-        Model.setWeight conn user today weight
+restSetWeight = loginReqdResponse $ \user -> do
+  today  <- getToday
+  weight <- getDoubleParam "weight"
+  withDb $ \conn -> Model.setWeight conn user today weight
 
 restListWeights :: H ()
 restListWeights =
   loginReqdResponse $ \user -> do
     today     <- getToday
     lastNDays <- getIntParam "days"
-    lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
+    withDb $ \conn -> Model.queryWeights conn user today lastNDays
 
 restAddNote :: H ()
-restAddNote = loginReqdResponse get
-  where
-    get user = do
-      today    <- getToday
-      noteText <- getTextParam "text"
-      lift $ withDb $ \conn -> Model.addNote conn user today noteText
+restAddNote = loginReqdResponse $ \user -> do
+  today    <- getToday
+  noteText <- getTextParam "text"
+  withDb $ \conn -> Model.addNote conn user today noteText
 
 restDeleteNote :: H ()
-restDeleteNote = loginReqdResponse get
-  where
-    get user = do
-      noteId <- getIntParam "id"
-      lift $ withDb $ \conn -> Model.deleteNote conn user noteId
+restDeleteNote = loginReqdResponse $ \user -> do
+  noteId <- getIntParam "id"
+  withDb $ \conn -> Model.deleteNote conn user noteId
 
 restListNotes :: H ()
 restListNotes = loginReqdResponse $ \user -> do
   today <- getToday
-  lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
+  withDb $ \conn -> Model.queryTodaysNotes conn user today
 
 ----------------------------------------------------------------------
 -- Workout related AJAX entry points
 
-wrapPayload :: Maybe Model.User -> Value -> Value
-wrapPayload Nothing v =
-  object [ "loggedIn"  .= False
-         , "payload"   .= v
-         ]
-wrapPayload (Just (Model.User uid login)) v =
-  object [ "loggedIn"  .= True
-         , "userId"    .= uid
-         , "userLogin" .= login
-         , "payload"   .= v
-         ]
-
 restListExerciseTypes :: H ()
 restListExerciseTypes = anonResponse $ \_user -> do
-  lift $ withDb $ \conn -> Model.queryExercises conn
+  withDb $ \conn -> Model.queryExercises conn
 
 -- TODO need to check for dupes by lower case name here, and return
 -- error if already exists
@@ -267,7 +258,7 @@ restNewExerciseType :: H ()
 restNewExerciseType = loginReqdResponse $ \_user -> do
   name <- getTextParam "name"
   ty   <- getTextParam "type" >>= hoistHttpError . textToExerciseType
-  lift $ withDb $ \conn ->
+  withDb $ \conn ->
     Model.addExercise conn name ty
 
 restQueryWorkouts :: H ()
@@ -277,45 +268,36 @@ restQueryWorkouts = do
   where
     oneWorkout id_ user = do
       workoutId_ <- parseInt64 . T.decodeUtf8 $ id_
-      workout <-
-        lift $ withDb $ \conn -> Model.queryWorkout conn user (RowId workoutId_)
+      workout <- withDb $ \conn -> Model.queryWorkout conn user (RowId workoutId_)
       tryJust (forbiddenReq "missing or unauthorized workout access") workout
 
     listWorkouts user = do
       today <- getToday
-      lift $ withDb $ \conn -> Model.queryTodaysWorkouts conn user today
+      withDb $ \conn -> Model.queryTodaysWorkouts conn user today
 
 restNewWorkout :: H ()
-restNewWorkout = loginReqdResponse new
-  where
-    new user = do
-      today <- getToday
-      lift $ withDb $ \conn -> Model.createWorkout conn user today
+restNewWorkout = loginReqdResponse $ \user -> do
+  today <- getToday
+  withDb $ \conn -> Model.createWorkout conn user today
 
 restAddExerciseSet :: H ()
-restAddExerciseSet = loginReqdResponse put
-  where
-    put user = do
-      workoutId_  <- RowId <$> getInt64Param "workoutId"
-      exerciseId_ <- RowId <$> getInt64Param "exerciseId"
-      reps        <- getIntParam "reps"
-      weight      <- getDoubleParam "weight"
-      lift $ withDb $ \conn ->
-        Model.addExerciseSet conn user workoutId_ exerciseId_ reps weight
+restAddExerciseSet = loginReqdResponse $ \user -> do
+  workoutId_  <- RowId <$> getInt64Param "workoutId"
+  exerciseId_ <- RowId <$> getInt64Param "exerciseId"
+  reps        <- getIntParam "reps"
+  weight      <- getDoubleParam "weight"
+  withDb $ \conn -> Model.addExerciseSet conn user workoutId_ exerciseId_ reps weight
 
 restDeleteExerciseSet :: H ()
-restDeleteExerciseSet = loginReqdResponse del
-  where
-    del user = do
-      setId_ <- RowId <$> getInt64Param "id"
-      lift $ withDb $ \conn ->
-        Model.deleteExerciseSet conn user setId_
+restDeleteExerciseSet = loginReqdResponse $ \user -> do
+  setId_ <- RowId <$> getInt64Param "id"
+  withDb $ \conn -> Model.deleteExerciseSet conn user setId_
 
 restQueryWorkoutHistory :: H ()
 restQueryWorkoutHistory = loginReqdResponse $ \user -> do
   limit <- getIntParam "limit"
   today <- getToday
-  lift $ withDb $ \conn -> Model.queryPastWorkouts conn user today limit
+  withDb $ \conn -> Model.queryPastWorkouts conn user today limit
 
 restModifyWorkout :: H ()
 restModifyWorkout = loginReqdResponse modify
@@ -323,6 +305,6 @@ restModifyWorkout = loginReqdResponse modify
     modify user = do
       reqParams' <- lift getJSON
       parms <- hoistHttpError reqParams'
-      lift $ withDb $ \conn -> do
+      withDb $ \conn -> do
         Model.makeWorkoutPublic conn user (wputWorkoutId parms) (wputPublic parms)
         Model.queryWorkout conn (Just user) (wputWorkoutId parms)

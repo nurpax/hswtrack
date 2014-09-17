@@ -91,9 +91,9 @@ finishEarly code str = do
   getResponse >>= finishWith
 
 -- | Run an IO action with an SQLite connection
-withDb :: (S.Connection -> IO a) -> H a
+withDb :: (S.Connection -> IO a) -> EitherT HttpError H a
 withDb action =
-  withTop db . withSqlite $ \conn -> action conn
+  lift $ withTop db . withSqlite $ \conn -> action conn
 
 reader :: T.Reader a -> T.Text -> Either String a
 reader p s =
