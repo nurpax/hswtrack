@@ -216,12 +216,11 @@ restSetWeight = loginReqdResponse set
         Model.setWeight conn user today weight
 
 restListWeights :: H ()
-restListWeights = method GET (loginReqdResponse get)
-  where
-    get user = do
-      today     <- getToday
-      lastNDays <- getIntParam "days"
-      lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
+restListWeights =
+  loginReqdResponse $ \user -> do
+    today     <- getToday
+    lastNDays <- getIntParam "days"
+    lift $ withDb $ \conn -> Model.queryWeights conn user today lastNDays
 
 restAddNote :: H ()
 restAddNote = loginReqdResponse get
@@ -239,11 +238,9 @@ restDeleteNote = loginReqdResponse get
       lift $ withDb $ \conn -> Model.deleteNote conn user noteId
 
 restListNotes :: H ()
-restListNotes = method GET (loginReqdResponse get)
-  where
-    get user = do
-      today <- getToday
-      lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
+restListNotes = loginReqdResponse $ \user -> do
+  today <- getToday
+  lift $ withDb $ \conn -> Model.queryTodaysNotes conn user today
 
 ----------------------------------------------------------------------
 -- Workout related AJAX entry points

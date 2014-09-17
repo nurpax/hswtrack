@@ -173,7 +173,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
   function loadWeights(ndays) {
     return $.ajax({
       type: "GET",
-      url: "/rest/weights",
+      url: "/rest/weight",
       data: { days: ndays }
     });
   }
@@ -181,7 +181,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
   function loadNotes() {
     return $.ajax({
       type: "GET",
-      url: "/rest/notes",
+      url: "/rest/note",
       data: []
     });
   }

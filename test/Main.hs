@@ -29,8 +29,8 @@ main =
       map (\u -> testCase u (testLoggedInFail (mkUrl u) defaults)) authReqd
     -- REST entry points which require user to be logged in
     authReqd = [ "/rest/app"
-               , "/rest/weights"
-               , "/rest/notes"
+               , "/rest/weight"
+               , "/rest/note"
                , "/rest/workout/exercise"
                , "/rest/workout"
                , "/rest/workout"

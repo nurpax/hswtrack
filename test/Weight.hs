@@ -21,20 +21,20 @@ testAddNote :: Options -> Assertion
 testAddNote opts = do
   let date      = "2014-04-04" :: T.Text
       wrongDate = "2014-04-05" :: T.Text
-  r <- getWith opts (mkUrl "/rest/notes")
+  r <- getWith opts (mkUrl "/rest/note")
   [] @=? r ^.. respPayload . values
   void $ postWith opts (mkUrl "/rest/note") [ "date" := date
                                             , "text" := ("note text"  :: T.Text)
                                             ]
-  r <- getWith (opts & param "date" .~ [date]) (mkUrl "/rest/notes")
+  r <- getWith (opts & param "date" .~ [date]) (mkUrl "/rest/note")
   1 @=? (length $ r ^.. respPayload . values)
   let Just noteText = r ^? respPayload . nth 0 . key "text" . _String
       Just noteId   = r ^? respPayload . nth 0 . key "id" . _Integer
   "note text" @=? noteText
-  r <- getWith (opts & param "date" .~ [wrongDate]) (mkUrl "/rest/notes")
+  r <- getWith (opts & param "date" .~ [wrongDate]) (mkUrl "/rest/note")
   0 @=? (length $ r ^.. respPayload . values)
   void $ deleteWith (opts & setParam "id" noteId) (mkUrl "/rest/note")
-  r <- getWith (opts & param "date" .~ [date]) (mkUrl "/rest/notes")
+  r <- getWith (opts & param "date" .~ [date]) (mkUrl "/rest/note")
   0 @=? (length $ r ^.. respPayload . values)
 
 testSetWeight :: Options -> Assertion
@@ -58,4 +58,4 @@ testSetWeight opts = do
     getWeights date (nDays :: Maybe Integer) =
       getWith (opts & param    "date" .~ [date]
                     & setParam "days" (fromMaybe 0 nDays))
-              (mkUrl "/rest/weights")
+              (mkUrl "/rest/weight")
