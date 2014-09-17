@@ -24,6 +24,7 @@ module Model.Db (
 
 import           Control.Applicative
 import           Control.Monad
+import           Data.List (foldl')
 import           Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -265,7 +266,7 @@ workoutExercises conn exercises w = do
   -- based on row ids.
   sets <- querySets conn (workoutId w)
   let exerciseOrder =
-        foldl (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
+        foldl' (\acc e -> if srExerciseId e `notElem` acc then acc ++ [srExerciseId e] else acc) [] sets
   let sets' =
         map (\exerciseId_ ->
               let ex = exercises M.! exerciseId_ in
