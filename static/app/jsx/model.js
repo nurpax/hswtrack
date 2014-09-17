@@ -81,7 +81,16 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
               type: "POST",
               data: params,
               success: function (resp) {
-                this.load(); // FIXME just force reloading the whole thing now
+                var exercise = _.find(this.workout.exercises, function (s) { return s.id == params.exerciseId; });
+                if (!exercise) {
+                  // No existing exercise.sets in the current workout,
+                  // so rather than try to create one locally, reload
+                  // the whole workout.
+                  this.load();
+                  return;
+                }
+                exercise.sets.push(resp.payload);
+                this.setStateCB(this);
               }.bind(this)
       });
     },
@@ -90,8 +99,17 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
       $.ajax({ url: "/rest/workout/exercise",
               type: "DELETE",
               data: params,
-              success: function (resp) {
-                this.load(); // FIXME just force reloading the whole thing now
+              success: function () {
+                // Delete the removed set from the client copy of the
+                // workout/exercises/sets data structure.
+                for (var i = 0; i < this.workout.exercises.length; i++) {
+                  var sets = this.workout.exercises[i].sets;
+                  if (_.find(sets, function (s) { return s.id == params.id; })) {
+                    this.workout.exercises[i].sets = _.filter(sets, function (s) { return s.id != params.id; });
+                    this.setStateCB(this);
+                    return;
+                  }
+                }
               }.bind(this)
       });
     },
@@ -102,7 +120,8 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
               dataType: "json",
               data: JSON.stringify({ id: workout.id, public: setPublic }),
               success: function (resp) {
-                this.load(); // FIXME just force reloading the whole thing now
+                this.workout.public = resp.payload.public;
+                this.setStateCB(this);
               }.bind(this)
       });
     }
