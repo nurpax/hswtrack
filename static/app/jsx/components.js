@@ -1,6 +1,37 @@
 /** @jsx React.DOM */
-define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, model, workout) {
+define(['underscore', 'react', 'jsx/model'], function(_, React, model) {
   "use strict";
+
+  var AlertGeneric = React.createClass({
+    getInitialState: function () {
+      return { visibleClass: "show" };
+    },
+
+    onClick: function () {
+      this.setState({ visibleClass: "hide" });
+    },
+
+    render: function () {
+      var cls = "alert alert-dismissable " + this.props.alertClass + " " + this.state.visibleClass;
+      return (
+        <div className={cls}>
+          <button onClick={this.onClick}
+                  type="button"
+                  className="close"
+                  data-dismiss="alert" aria-hidden="true">&times;</button>
+          {this.props.message}
+        </div>
+      );
+    }
+  });
+
+  var Alert = React.createClass({
+    render: function () {
+      if (!this.props.error)
+        return null;
+      return <AlertGeneric message={this.props.error} alertClass="alert-danger" />;
+    }
+  });
 
   // Put content hidden behind a clickable link.  Once the link is 
   // clicked, the hidden child content is displayed.
@@ -69,9 +100,28 @@ define(['underscore', 'react', 'jsx/model', 'jsx/workout'], function(_, React, m
     }
   });
 
+  var FormGroup = React.createClass({
+    render: function () {
+      return (
+        <div className="well">
+          <form onSubmit={this.props.onSubmit}>
+            {this.props.children}
+            <div className="form-group row">
+              <div className="col-md-12">
+                <button className="btn btn-primary" type="submit">{this.props.submitTitle}</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      );
+    }
+  });
 
   return {
-    'Unhide': Unhide,
-    'Tabs': Tabs
-  }
+    'Alert':        Alert,
+    'AlertGeneric': AlertGeneric,
+    'Unhide':       Unhide,
+    'Tabs':         Tabs,
+    'FormGroup':    FormGroup
+  };
 });

@@ -1,19 +1,8 @@
 /** @jsx React.DOM */
-define(['underscore', 'react'], function(_, React) {
+define(['underscore', 'react', 'jsx/components'], function(_, React, components) {
   "use strict";
 
-  var LoginError = React.createClass({
-    render: function () {
-      if (!this.props.loginError)
-        return null;
-      return (
-        <div className="alert alert-danger alert-dismissable">
-          <button type="button" className="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-          {this.props.loginError}
-        </div>
-      );
-    }
-  });
+  var LoginError = components.Alert;
 
   var LoginScreen = React.createClass({
     handleSubmit: function () {
@@ -85,7 +74,7 @@ define(['underscore', 'react'], function(_, React) {
 
     React.renderComponent(
       <div>
-        <LoginError loginError={context.loginError} />
+        <LoginError error={context.loginError} />
         <LoginScreen formType={formType} onSubmit={onSubmit} />
         {createUserLink}
       </div>,
