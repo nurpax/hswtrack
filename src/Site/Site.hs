@@ -57,6 +57,7 @@ handleNewUser =
 routes :: String -> [(ByteString, Handler App App ())]
 routes staticAssetDir =
   [ ("/rest/login",    handleLoginSubmit)
+  , ("/rest/user",     method PUT restModifyUser)
   , ("/rest/new_user", handleNewUser)
   , ("/logout",        handleLogout)
   , ("/rest/app",      method GET restAppContext)

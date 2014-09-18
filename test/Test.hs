@@ -3,7 +3,8 @@
 module Test where
 
 import qualified Control.Exception as E
-import           Control.Lens
+import           Control.Lens hiding ((.=))
+import           Data.Aeson (object, (.=))
 import           Data.Aeson.Lens
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
@@ -71,3 +72,25 @@ getExpectHttpError opts url errCode = do
 -- GET requests against 'url' and expect to get error 403 back
 testLoggedInFail :: String -> Options -> Assertion
 testLoggedInFail url opts = getExpectHttpError opts url 403
+
+testChangePassword :: Assertion
+testChangePassword = do
+  let newPasswd = "new_pass" :: T.Text
+  -- Login
+  r <- post (mkUrl "/rest/login") ["login" := login, "password" := passwd]
+  let opts1 = defaults & cookies .~ (r ^. responseCookieJar)
+  testLoggedInOk opts1
+  let changePass = object [ "password" .= newPasswd ]
+  r <- putWith opts1 (mkUrl "/rest/user") changePass
+  let opts2 = defaults & cookies .~ (r ^. responseCookieJar)
+  testLoggedInOk opts2
+  r <- post (mkUrl "/rest/login") ["login" := login, "password" := passwd]
+  let opts3 = defaults & cookies .~ (r ^. responseCookieJar)
+  testLoggedInFail (mkUrl "/rest/app") opts3
+  r <- post (mkUrl "/rest/login") ["login" := login, "password" := newPasswd]
+  let opts4 = defaults & cookies .~ (r ^. responseCookieJar)
+  testLoggedInOk opts4
+  -- Change the passwd back to original, so that the next run with the
+  -- same database won't start failing tests.
+  r <- putWith opts4 (mkUrl "/rest/user") $ object [ "password" .= passwd ]
+  return ()

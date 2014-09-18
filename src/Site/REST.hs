@@ -9,6 +9,7 @@ module Site.REST
   , WeightSample(..)
   , restAppContext
   , restLoginError
+  , restModifyUser
   , restSetWeight
   , restClearWeight
   , restListWeights
@@ -27,10 +28,11 @@ module Site.REST
 
 ------------------------------------------------------------------------------
 import           Control.Applicative
+import           Control.Arrow (left)
 import           Control.Monad (mzero)
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
-import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Either hiding (left)
 import           Data.Aeson hiding (json)
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -139,6 +141,14 @@ instance FromJSON WorkoutPutReq where
     parseJSON (Object v) = WorkoutPutReq <$> (RowId <$> v .: "id") <*> v .: "public"
     parseJSON _          = mzero
 
+data UserPutReq = UserPutReq {
+    userPutPassword :: T.Text
+  }
+
+instance FromJSON UserPutReq where
+    parseJSON (Object v) = UserPutReq <$> v .: "password"
+    parseJSON _          = mzero
+
 restLoginError :: MonadSnap m => T.Text -> m ()
 restLoginError e =
   writeJSON (AppContext False (Just e) Nothing)
@@ -155,18 +165,20 @@ wrapPayload (Just (Model.User uid login)) v =
          , "payload"   .= v
          ]
 
-loginReqdResponse :: ToJSON a => (User -> EitherT HttpError H a) -> H ()
-loginReqdResponse action = with auth currentUser >>= go
+loginReqdResponseAuthUser :: ToJSON a => (AuthUser -> User -> EitherT HttpError H a) -> H ()
+loginReqdResponseAuthUser action = with auth currentUser >>= go
   where
-    go Nothing  =
-      modifyResponse $ setResponseStatus 403 "Login required"
+    go Nothing  = modifyResponse $ setResponseStatus 403 "Login required"
 
     go (Just u) = runHttpErrorEitherT $ do
       uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
       uid' <- hoistHttpError (reader T.decimal (unUid uid))
       let modelUser = Model.User uid' (userLogin u)
-      json <- toJSON <$> action modelUser
+      json <- toJSON <$> action u modelUser
       return . writeJSON . wrapPayload (Just modelUser) $ json
+
+loginReqdResponse :: ToJSON a => (User -> EitherT HttpError H a) -> H ()
+loginReqdResponse action = loginReqdResponseAuthUser (const action)
 
 anonResponse :: ToJSON a => (Maybe User -> EitherT HttpError H a) -> H ()
 anonResponse action = do
@@ -194,6 +206,19 @@ getToday = do
       let t' = parseTime defaultTimeLocale "%Y-%m-%d" . T.unpack $ t
       tryJust (badReq "invalid GET date format") t'
     Nothing -> liftIO getCurrentTime
+
+-- REST API to modify an existing user.  Currently supports only
+-- changing the user's password.
+restModifyUser :: H ()
+restModifyUser = loginReqdResponseAuthUser go
+  where
+    go authUser _user = do
+      reqParams' <- lift getJSON
+      parms <- hoistHttpError reqParams'
+      newUser <- liftIO $ setPassword authUser (T.encodeUtf8 . userPutPassword $ parms)
+      err <- lift $ with auth $ withBackend $ \r -> liftIO $ save r newUser
+      _u <- hoistHttpError (left show err)
+      return ()
 
 -- Every page render calls this handler to get an "app context".  This
 -- context struct contains things like is the user logged in, what's
