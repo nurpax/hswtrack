@@ -93,7 +93,7 @@ define(['underscore', 'react', 'd3', 'jsx/model'], function(_, React, d3, model)
           <div className="well">
             <p>Please enter your weight (kg):</p>
             <form onSubmit={this.handleWeightSubmit}>
-              <input ref="weight" type="number" placeholder="Enter weight.."></input>
+              <input ref="weight" type="number" step="any" min="0" placeholder="Enter weight.."></input>
               <button className="btn btn-primary">Save</button>
             </form>
           </div>
