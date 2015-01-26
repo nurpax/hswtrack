@@ -162,10 +162,10 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
       if (this.props.exercise.type == 'BW') {
         inp =
           <Unhide title="Advanced &raquo;">
-            <input className="form-control" type="number" ref="weight" placeholder="Weight.." />
+            <input className="form-control" type="number" step="any" min="0" ref="weight" placeholder="Weight.." />
           </Unhide>
       } else if (this.props.exercise.type == 'W') {
-        inp = <input className="form-control" type="number" ref="weight"  placeholder="Weight.." />;
+        inp = <input className="form-control" type="number" step="any" min="0" ref="weight"  placeholder="Weight.." />;
       }
       return (
         <form onSubmit={this.handleSubmit}>
