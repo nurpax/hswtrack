@@ -51,7 +51,7 @@ exerciseIdByName name xs =
     Nothing -> assertFailure "missing exercise" >> return 0
     Just v  -> return . fst $ v
 
-addReps :: Options -> Integer -> Integer -> Integer -> Integer -> Assertion
+addReps :: Options -> Integer -> Integer -> Integer -> Double -> Assertion
 addReps opts workoutId exerciseId reps weight = do
   r <- postWith opts (mkUrl "/rest/workout/exercise")
     [ "workoutId"  := workoutId
@@ -59,7 +59,7 @@ addReps opts workoutId exerciseId reps weight = do
     , "reps"       := reps
     , "weight"     := weight
     ]
-  Just weight @=? r ^? respPayload . key "weight" . _Integer
+  Just weight @=? r ^? respPayload . key "weight" . _Double
   Just reps   @=? r ^? respPayload . key "reps"   . _Integer
 
 deleteSet :: Options -> Integer -> Assertion
@@ -71,7 +71,7 @@ deleteSet opts setId = do
 exercises :: Traversal' (Response LBS.ByteString) Value
 exercises = respPayload . key "exercises" . values
 
-addWorkout :: Options -> [Exercise] -> [(T.Text, [(Integer, Integer)])] -> IO Integer
+addWorkout :: Options -> [Exercise] -> [(T.Text, [(Integer, Double)])] -> IO Integer
 addWorkout opts exTypes sets = do
   r <- postWith opts (mkUrl "/rest/workout") emptyPostParams
   let workoutId = fromJust $ r ^? respPayload . key "id" . _Integer
@@ -103,6 +103,18 @@ testWorkout opts = do
   Just 10  @=? (ex1Sets V.! 1) ^? key "weight" . _Integer
   Just 5   @=? (ex2Sets V.! 0) ^? key "reps"   . _Integer
   Just 100 @=? (ex2Sets V.! 0) ^? key "weight" . _Integer
+
+testWorkoutTime :: Options -> Assertion
+testWorkoutTime opts = do
+  exTypes   <- listExercises opts
+  workoutId <- addWorkout opts exTypes [ ("planking", [(1, 60)]) ]
+  r <- getWith (opts & setParam "id" workoutId) (mkUrl "/rest/workout")
+  let exerciseSets  = r ^.. exercises . key "sets" . _Array
+  let exerciseNames = r ^.. exercises . key "name" . _String
+  "planking" @=? (exerciseNames !! 0)
+  let ex1Sets = (exerciseSets !! 0)
+  Just 1    @=? (ex1Sets V.! 0) ^? key "reps"   . _Integer
+  Just 60.0 @=? (ex1Sets V.! 0) ^? key "weight" . _Double
 
 queryWorkoutSetIds :: Options -> Integer -> IO [Integer]
 queryWorkoutSetIds opts workoutId = do

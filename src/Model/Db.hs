@@ -112,6 +112,22 @@ upgradeTo2 :: Connection -> IO ()
 upgradeTo2 conn = do
   execute_ conn "ALTER TABLE workouts ADD COLUMN public BOOL DEFAULT 0 NOT NULL"
 
+upgradeTo3 :: Connection -> IO ()
+upgradeTo3 conn = do
+  -- SQLite doesn't allow altering enum constraints, so we need to
+  -- create a new table with the right schema and insert the old table
+  -- into it and drop the table with the old schema.
+  execute_ conn
+    (Query $
+     T.concat [ "CREATE TABLE exercises_new ("
+              , " id INTEGER PRIMARY KEY,"
+              , " name TEXT,"
+              , " type TEXT NOT NULL DEFAULT 'W' CHECK(type IN ('W', 'BW', 'T')));"
+              ])
+  execute_ conn "INSERT INTO exercises_new SELECT * from exercises"
+  execute_ conn "DROP TABLE exercises;"
+  execute_ conn "ALTER TABLE exercises_new RENAME TO exercises;"
+
 -- | Create the necessary database tables, if not already initialized.
 createTables :: Connection -> IO ()
 createTables conn = do
@@ -152,6 +168,7 @@ createTables conn = do
         when (version == n) $ u conn >> setSchemaVersion conn (n + 1)
   upgradeVersion 0 upgradeTo1
   upgradeVersion 1 upgradeTo2
+  upgradeVersion 2 upgradeTo3
   execute_ conn "COMMIT"
 
 setWeight :: Connection -> User -> UTCTime -> Double -> IO WeightSample
