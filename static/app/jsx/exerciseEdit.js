@@ -59,6 +59,12 @@ define(['underscore', 'react', 'jsx/model'], function(_, React, model) {
                     Bodyweight exercises like push-ups or pull-ups.  Extra weight can be input but is not required.
                   </label>
                 </div>
+                <div className="radio">
+                  <label>
+                    <input type="radio" onChange={this.typeChanged} value="T" checked={this.state.exerciseType == "T"}/>
+                    Duration based exercises like planking (measured in seconds).
+                  </label>
+                </div>
               </div>
             </div>
             <button id="new-workout" className="btn btn-primary" type="submit">Add</button>

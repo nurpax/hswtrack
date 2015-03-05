@@ -15,8 +15,10 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
       var msg;
       if (this.props.type == 'W') {
         msg = this.props.reps + " x " + this.props.weight + " kg";
-      } else {
+      } else if (this.props.type == 'BW') {
         msg = this.props.reps + " reps (+ " + this.props.weight + " kg)";
+      } else if (this.props.type == 'T') {
+        msg = this.props.weight + " seconds";
       }
       if (!confirm(msg + "\n\nOK to delete set?"))
         return false;
@@ -37,8 +39,8 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
             <td>{this.props.weight ? '(+'+this.props.weight+' kg)' : '' }</td>
             {rmSet}
           </tr>
-        )
-      } else {
+        );
+      } else if (this.props.type == "W") {
         return (
           <tr>
             <td>Set:</td>
@@ -47,7 +49,17 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
             <td>{this.props.weight} kg</td>
             {rmSet}
           </tr>
-        )
+        );
+      } else if (this.props.type == "T") {
+        return (
+          <tr>
+            <td>Set:</td>
+            <td></td>
+            <td></td>
+            <td>{this.props.weight} seconds</td>
+            {rmSet}
+          </tr>
+        );
       }
     }
   });
@@ -58,10 +70,14 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
       var total = model.calcExerciseStats(this.props);
       var type  = this.props.type;
 
-      if (type != 'W' && type != 'BW')
+      if (type == 'BW')
+        unitKgOrReps = "";
+      else if (type == 'W')
+        unitKgOrReps = "kg";
+      else if (type == 'T')
+        unitKgOrReps = "seconds";
+      else
         console.error(this.props.type, "unknown exercise type " + type);
-
-      unitKgOrReps = type == 'BW' ? "" : "kg";
 
       sets = this.props.sets.map(function (s) {
         return <Set key={s.id} type={type} reps={s.reps} weight={s.weight} setId={s.id}
@@ -158,6 +174,10 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
       if (!this.props.exercise)
         return null;
 
+      var repsinput =
+        <div className="col-xs-4">
+           <input className="form-control" type="number" ref="reps" placeholder="Reps.." />
+        </div>;
       var inp = null;
       if (this.props.exercise.type == 'BW') {
         inp =
@@ -166,13 +186,14 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
           </Unhide>
       } else if (this.props.exercise.type == 'W') {
         inp = <input className="form-control" type="number" step="any" min="0" ref="weight"  placeholder="Weight.." />;
+      } else if (this.props.exercise.type == 'T') {
+        inp = <input className="form-control" type="number" step="any" min="0" ref="weight"  placeholder="Time (s).." />;
+        repsinput = <input type="hidden" ref="reps" value="1" />
       }
       return (
         <form onSubmit={this.handleSubmit}>
           <div className="row">
-            <div className="col-xs-4">
-              <input className="form-control" type="number" ref="reps" placeholder="Reps.." />
-            </div>
+            {repsinput}
             <div className="col-xs-4">
               {inp}
             </div>
