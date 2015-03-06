@@ -20,6 +20,10 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     });
   }
 
+  function sortExerciseTypes(lst) {
+    return _.sortBy(lst, function (e) { return e.name; });
+  }
+
   function loadWorkout(id) {
     return $.ajax({
       type: "GET",
@@ -37,7 +41,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
     load: function () {
       $.when(loadExerciseTypes())
           .done(function (data) {
-            this.exercises = data.payload;
+            this.exercises = sortExerciseTypes(data.payload);
             this.setStateCB(this);
           }.bind(this));
     },
@@ -48,7 +52,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
         type: "POST",
         data: e,
         success: function (resp) {
-          this.exercises = this.exercises.concat([resp.payload]);
+          this.exercises = sortExerciseTypes(this.exercises.concat([resp.payload]));
           this.setStateCB(this);
         }.bind(this)
       });
@@ -67,7 +71,7 @@ define(['jquery', 'underscore', 'app/class'], function($, _, obj) {
       $.when(loadWorkout(this.workout.id), loadExerciseTypes())
           .done(function (w, e) {
             this.workout = w[0].payload;
-            this.exerciseTypes = e[0].payload;
+            this.exerciseTypes = sortExerciseTypes(e[0].payload);
             // Is this workout editable by the currently logged in user?
             if (w[0].loggedIn) {
               this.canEdit = w[0].userId == w[0].payload.userId;
