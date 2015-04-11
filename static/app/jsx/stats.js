@@ -39,7 +39,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components', 'jsx/workout'], fu
   });
 
   var renderStats = function () {
-    React.renderComponent(
+    React.render(
       <Tabs tabs={["History", "Personal Records"]}>
         <WorkoutList />
         <div>

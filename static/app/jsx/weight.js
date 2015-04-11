@@ -259,7 +259,7 @@ define(['underscore', 'react', 'd3', 'jsx/model'], function(_, React, d3, model)
   });
 
   var render = function () {
-    React.renderComponent(<Weights model={new model.WeightTop()} />, document.getElementById('app-container'));
+    React.render(<Weights model={new model.WeightTop()} />, document.getElementById('app-container'));
   };
 
   // export

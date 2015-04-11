@@ -287,7 +287,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
   });
 
   var render = function (id) {
-    React.renderComponent(
+    React.render(
       <div>
         <WorkoutEdit model={new model.Workout(id)}/>
       </div>,
@@ -324,7 +324,7 @@ define(['underscore', 'react', 'jsx/model', 'jsx/components'], function(_, React
   });
 
   var renderToday = function () {
-    React.renderComponent(
+    React.render(
       <WorkoutList model={new model.WorkoutList()}/>,
       document.getElementById('app-container')
     );

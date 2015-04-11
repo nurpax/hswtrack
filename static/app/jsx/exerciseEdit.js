@@ -105,7 +105,7 @@ define(['underscore', 'react', 'jsx/model'], function(_, React, model) {
   var exerciseModel = new model.Exercise();
 
   var renderExerciseEditor = function () {
-    React.renderComponent(
+    React.render(
       <div>
         <ExerciseEdit model={exerciseModel} />
         <a href="/workout">Back to workouts..</a>

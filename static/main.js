@@ -8,7 +8,7 @@ requirejs.config({
         history: 'lib/history',
         history_adapter: 'lib/history.adapter.native',
         router: 'lib/router',
-        react: 'lib/reactjs-0.11.1/react.min',
+        react: 'lib/reactjs-0.13.1/react.min',
     },
     shim: {
         d3: {

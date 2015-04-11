@@ -101,7 +101,7 @@ define(['jquery', 'underscore', 'react', 'jsx/components'], function($, _, React
   });
 
   var render = function () {
-    React.renderComponent(<Settings />, document.getElementById('app-container'));
+    React.render(<Settings />, document.getElementById('app-container'));
   };
 
   // export

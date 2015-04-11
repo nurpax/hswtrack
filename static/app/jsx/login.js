@@ -72,7 +72,7 @@ define(['underscore', 'react', 'jsx/components'], function(_, React, components)
     var createUserLink =
       formType == "login" ? <p>Don't have a login yet? <a href="/new_user">Create a new user</a></p> : null;
 
-    React.renderComponent(
+    React.render(
       <div>
         <LoginError error={context.loginError} />
         <LoginScreen formType={formType} onSubmit={onSubmit} />
