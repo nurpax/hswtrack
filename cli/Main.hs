@@ -1,19 +1,23 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 import Data.Aeson.Encode.Pretty
 import qualified Data.Aeson.Types as A
 
-import qualified Data.Text as T (pack)
+import           Control.Concurrent.MVar
+import qualified Data.Text as T (Text, pack)
 import qualified Data.ByteString.Lazy as LB (putStr)
 import qualified Data.ByteString.UTF8 as BU (fromString)
 import qualified Data.HashMap.Lazy as M
+import           Data.Maybe (maybe)
+import qualified Database.SQLite.Simple as S
 
 import System.Console.CmdArgs.Implicit
 
 import Snap.Snaplet.Auth
-import Snap.Snaplet.Auth.Backends.JsonFile
+import Snap.Snaplet.Auth.Backends.SqliteSimple
 
 -- | Rank-2 type for action applicable to AuthManager and AuthUser.
 type AuthUserAction = forall r. IAuthBackend  r => r -> AuthUser -> IO ()
@@ -126,7 +130,7 @@ data Options = Options
     { mode     :: OpMode
     , user     :: Maybe String
     , password :: Maybe String
-    , json     :: String
+    , db       :: String
     , role     :: [String]
     , key      :: [String]
     , value    :: [String]
@@ -157,14 +161,16 @@ main =
                    &= help "User meta key. Must be followed by value option"
                  , value = def &= name "v"
                    &= help "User meta value."
-                 , json = "users.json"
+                 , db = def
                    &= typFile
                    &= help "Path to JsonFile database"
                  }
                  &= program "snap-auth-cli"
     in do
       Options{..} <- cmdArgs $ sample
-      amgr <- mkJsonAuthMgr json
+      let tblName = "snap_auth_user" :: T.Text
+      conn <- S.open db >>= newMVar
+      let amgr = mkSqliteAuthMgr tblName conn
       case (mode, user, password) of
         (_, Nothing, _) -> ioError $ userError "No user selected"
         (Read, Just l, _) -> mgrOldUser amgr l readAction
@@ -173,7 +179,16 @@ main =
         (Create, _, Nothing) -> ioError $ userError "No password set"
         (_, Just l, pw) ->
             do
-                au <- buildAuthUser l pw role (zip key value)
                 case mode of
-                  Modify -> mgrOldUser amgr l (makeUpdateAction au) >> return ()
-                  Create -> save amgr au >> return ()
+                  Modify -> do
+                    mu <- lookupByLogin amgr (T.pack l)
+                    case mu of
+                      Just au -> do
+                        let pw' = BU.fromString <$> pw
+                        au' <- maybe (return au) (setPassword au) pw'
+                        mgrOldUser amgr l (makeUpdateAction au') >> return ()
+                      Nothing ->
+                        ioError $ userError ("unknown user" ++ l)
+                  Create -> do
+                    au <- buildAuthUser l pw role (zip key value)
+                    save amgr au >> return ()
