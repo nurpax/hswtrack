@@ -27,19 +27,17 @@ module Site.REST
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative
 import           Control.Arrow (left)
 import           Control.Monad (mzero)
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift, liftIO)
-import           Control.Monad.Trans.Either hiding (left)
+import           Control.Monad.Except
 import           Data.Aeson hiding (json)
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Read as T
 import           Data.Time
-import           System.Locale (defaultTimeLocale)
 ------------------------------------------------------------------------------
 import           Model
 import           Site.Util
@@ -165,24 +163,24 @@ wrapPayload (Just (Model.User uid login)) v =
          , "payload"   .= v
          ]
 
-loginReqdResponseAuthUser :: ToJSON a => (AuthUser -> User -> EitherT HttpError H a) -> H ()
+loginReqdResponseAuthUser :: ToJSON a => (AuthUser -> User -> ExceptT HttpError H a) -> H ()
 loginReqdResponseAuthUser action = with auth currentUser >>= go
   where
     go Nothing  = modifyResponse $ setResponseStatus 403 "Login required"
 
-    go (Just u) = runHttpErrorEitherT $ do
+    go (Just u) = runHttpErrorExceptT $ do
       uid  <- tryJust (badReq "withLoggedInUser: missing uid") (userId u)
       uid' <- hoistHttpError (reader T.decimal (unUid uid))
       let modelUser = Model.User uid' (userLogin u)
       json <- toJSON <$> action u modelUser
       return . writeJSON . wrapPayload (Just modelUser) $ json
 
-loginReqdResponse :: ToJSON a => (User -> EitherT HttpError H a) -> H ()
+loginReqdResponse :: ToJSON a => (User -> ExceptT HttpError H a) -> H ()
 loginReqdResponse action = loginReqdResponseAuthUser (const action)
 
-anonResponse :: ToJSON a => (Maybe User -> EitherT HttpError H a) -> H ()
+anonResponse :: ToJSON a => (Maybe User -> ExceptT HttpError H a) -> H ()
 anonResponse action = do
-  with auth currentUser >>= \u -> runHttpErrorEitherT $ do
+  with auth currentUser >>= \u -> runHttpErrorExceptT $ do
     go u
   where
     go Nothing  = do
@@ -198,7 +196,7 @@ anonResponse action = do
 
 -- Get requested date either from GET params or return today's time if not specified.
 -- FIXME: at some point we need to decide how to deal with timezones here
-getToday :: EitherT HttpError H UTCTime
+getToday :: ExceptT HttpError H UTCTime
 getToday = do
   today <- maybeGetTextParam "date"
   case today of

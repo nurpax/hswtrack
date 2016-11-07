@@ -2,7 +2,7 @@
 
 module Site.Util (
     reader
-  , runHttpErrorEitherT
+  , runHttpErrorExceptT
   , hoistHttpError
   , badReq
   , forbiddenReq
@@ -24,7 +24,7 @@ module Site.Util (
 ------------------------------------------------------------------------------
 import           Control.Error.Safe (tryJust)
 import           Control.Monad.Trans (lift)
-import           Control.Monad.Trans.Either
+import           Control.Monad.Except
 import qualified Data.Aeson as A
 import           Data.ByteString (ByteString)
 import           Data.Int (Int64)
@@ -73,7 +73,7 @@ getBoundedJSON
     -- ^ Maximum size in bytes
     -> m (Either String a)
 getBoundedJSON n = do
-  bodyVal <- A.decode `fmap` readRequestBody n
+  bodyVal <- A.decode `fmap` readRequestBody (fromIntegral n)
   return $ case bodyVal of
     Nothing -> Left "Can't find JSON data in POST body"
     Just v -> case A.fromJSON v of
@@ -91,7 +91,7 @@ finishEarly code str = do
   getResponse >>= finishWith
 
 -- | Run an IO action with an SQLite connection
-withDb :: (S.Connection -> IO a) -> EitherT HttpError H a
+withDb :: (S.Connection -> IO a) -> ExceptT HttpError H a
 withDb action =
   lift $ withTop db . withSqlite $ \conn -> action conn
 
@@ -102,8 +102,8 @@ reader p s =
     Right (_, _) -> Left "readParser: input not exhausted"
     Left e -> Left e
 
-runHttpErrorEitherT :: EitherT HttpError H (H ()) -> H ()
-runHttpErrorEitherT e = runEitherT e >>= either err id
+runHttpErrorExceptT :: ExceptT HttpError H (H ()) -> H ()
+runHttpErrorExceptT e = runExceptT e >>= either err id
   where
     err (HttpError errCode msg) = do
       let m = T.encodeUtf8 . T.pack $ msg
@@ -116,38 +116,42 @@ badReq msg = HttpError 400 msg
 forbiddenReq :: String -> HttpError
 forbiddenReq msg = HttpError 403 msg
 
-hoistHttpError :: Monad m => Either String a -> EitherT HttpError m a
+-- | Upgrade an 'Either' to an 'ExceptT'
+hoistEither :: Monad m => Either e a -> ExceptT e m a
+hoistEither = ExceptT . return
+
+hoistHttpError :: Monad m => Either String a -> ExceptT HttpError m a
 hoistHttpError (Left m)  = hoistEither . Left . badReq $ m
 hoistHttpError (Right v) = hoistEither . Right $ v
 
-parseDouble :: T.Text -> EitherT HttpError H Double
+parseDouble :: T.Text -> ExceptT HttpError H Double
 parseDouble t =
   hoistHttpError (reader T.rational t)
 
-parseInt64 :: T.Text -> EitherT HttpError H Int64
+parseInt64 :: T.Text -> ExceptT HttpError H Int64
 parseInt64 t = hoistHttpError (reader T.decimal t)
 
-tryGetParam :: MonadSnap m => ByteString -> EitherT HttpError m ByteString
+tryGetParam :: MonadSnap m => ByteString -> ExceptT HttpError m ByteString
 tryGetParam p =
   lift (getParam p) >>= tryJust (badReq $ "missing get param '"++ show p ++"'")
 
-getIntParam :: ByteString -> EitherT HttpError H Int
+getIntParam :: ByteString -> ExceptT HttpError H Int
 getIntParam n =
   tryGetParam n >>= \p -> hoistHttpError (reader T.decimal . T.decodeUtf8 $ p)
 
-getInt64Param :: ByteString -> EitherT HttpError H Int64
+getInt64Param :: ByteString -> ExceptT HttpError H Int64
 getInt64Param n =
   getTextParam n >>= \p -> parseInt64 p
 
-getDoubleParam :: ByteString -> EitherT HttpError H Double
+getDoubleParam :: ByteString -> ExceptT HttpError H Double
 getDoubleParam n =
   getTextParam n >>= \p -> parseDouble p
 
-getTextParam :: ByteString -> EitherT HttpError H T.Text
+getTextParam :: ByteString -> ExceptT HttpError H T.Text
 getTextParam n =
   tryGetParam n >>= \p -> return . T.decodeUtf8 $ p
 
-maybeGetTextParam :: ByteString -> EitherT HttpError H (Maybe T.Text)
+maybeGetTextParam :: ByteString -> ExceptT HttpError H (Maybe T.Text)
 maybeGetTextParam n = do
   p <- lift $ getParam n
   return $ fmap T.decodeUtf8 p

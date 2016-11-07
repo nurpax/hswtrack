@@ -85,7 +85,7 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
 
     addRoutes (routes staticAssetDir)
     s <- nestSnaplet "sess" sess $
-           initCookieSessionManager "site_key.txt" "sess" (Just (14*24*3600))
+           initCookieSessionManager "site_key.txt" "sess" Nothing (Just (14*24*3600))
 
     -- Initialize auth that's backed by an sqlite database
     d <- nestSnaplet "db" db sqliteInit
