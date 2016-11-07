@@ -2,19 +2,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 
-{-|
-
-Main module.
-
--}
-
-module Main
-
-where
-
-import Data.Functor
-import Data.Monoid
-
 import Data.Aeson.Encode.Pretty
 import qualified Data.Aeson.Types as A
 
@@ -28,10 +15,8 @@ import System.Console.CmdArgs.Implicit
 import Snap.Snaplet.Auth
 import Snap.Snaplet.Auth.Backends.JsonFile
 
-
 -- | Rank-2 type for action applicable to AuthManager and AuthUser.
-type AuthUserAction = IAuthBackend r => r -> AuthUser -> IO ()
-
+type AuthUserAction = forall r. IAuthBackend  r => r -> AuthUser -> IO ()
 
 -- | Action for --read mode: show pretty JSON auth user entry.
 readAction :: AuthUserAction
@@ -178,7 +163,6 @@ main =
                  }
                  &= program "snap-auth-cli"
     in do
-      -- RecordWildCards
       Options{..} <- cmdArgs $ sample
       amgr <- mkJsonAuthMgr json
       case (mode, user, password) of
