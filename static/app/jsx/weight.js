@@ -171,7 +171,7 @@ define(['underscore', 'react', 'd3', 'jsx/model'], function(_, React, d3, model)
 
   function renderPlot(elt, props) {
     return function(me) {
-      var width  = elt.offsetWidth;
+      var width  = 320;
       var height = width / 2;
       renderPlotPriv(props, me, width, height);
     };
