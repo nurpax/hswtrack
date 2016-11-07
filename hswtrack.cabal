@@ -31,7 +31,7 @@ Executable hswtrack
     snap-core >= 1.0.0.0,
     snap-server,
     snap-loader-static,
-    snaplet-sqlite-simple >= 1.0,
+    snaplet-sqlite-simple >= 1.0.0.1,
     sqlite-simple >= 0.4.5 && < 1.0,
     text,
     time,
